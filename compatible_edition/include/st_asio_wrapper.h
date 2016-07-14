@@ -12,21 +12,15 @@
  * license: www.boost.org/LICENSE_1_0.txt
  *
  * change log:
- * 2012.7.7
- * Created
- *
- * 2012.7.7 - 2016.7.7
- * Beta edition
- *
- * 2016.7.7		version 1.0.0
- * First release
+ * See st_asio_wrapper.h in standard edition.
  *
  */
 
 #ifndef ST_ASIO_WRAPPER_H_
 #define ST_ASIO_WRAPPER_H_
 
-#define ST_ASIO_WRAPPER_VERSION 10000 //[x]xxxxx -> [x]x.xx.xx
+#define ST_ASIO_WRAPPER_VER		10001
+#define ST_ASIO_WRAPPER_VERSION	"1.0.1"
 
 #ifdef _MSC_VER
 	#if _MSC_VER >= 1600
