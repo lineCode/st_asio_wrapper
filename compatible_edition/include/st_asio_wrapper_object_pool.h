@@ -430,7 +430,7 @@ private:
 #endif
 
 protected:
-	boost::atomic_uint_fast64_t cur_id;
+	st_atomic_uint_fast64 cur_id;
 
 	container_type object_can;
 	boost::shared_mutex object_can_mutex;

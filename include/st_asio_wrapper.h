@@ -22,7 +22,7 @@
  * First release
  *
  * 2016.7.17	version 1.0.1
- * Support boost-1.53, it's the minimum version for st_asio_wrapper because of boost::atomic.
+ * Support boost-1.49, it's the minimum version for st_asio_wrapper because of boost::container.
  *
  */
 
