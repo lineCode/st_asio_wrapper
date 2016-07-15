@@ -8,7 +8,7 @@
 #include "../include/st_asio_wrapper_tcp_client.h"
 using namespace st_asio_wrapper;
 
-extern boost::atomic_ushort completed_client_num;
+extern st_atomic<unsigned short> completed_client_num;
 extern int link_num;
 extern fl_type file_size;
 

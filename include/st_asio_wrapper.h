@@ -29,7 +29,7 @@
 #ifndef ST_ASIO_WRAPPER_H_
 #define ST_ASIO_WRAPPER_H_
 
-#define ST_ASIO_WRAPPER_VER		10001
+#define ST_ASIO_WRAPPER_VER		10001	//[x]xyyzz -> [x]x.[y]y.[z]z
 #define ST_ASIO_WRAPPER_VERSION	"1.0.1"
 
 #ifdef _MSC_VER
@@ -50,5 +50,7 @@
 #else
 	#error st_asio_wrapper only support Visual C++, GCC and Clang.
 #endif
+
+static_assert(BOOST_VERSION >= 104900, "st_asio_wrapper only support boost 1.49 or higher.");
 
 #endif /* ST_ASIO_WRAPPER_H_ */
