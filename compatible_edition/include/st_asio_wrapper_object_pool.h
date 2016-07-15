@@ -91,7 +91,7 @@ private:
 	T data;
 	boost::shared_mutex data_mutex;
 };
-typedef st_atomic<uint_fast64_t> st_atomic_uint_fast64;
+typedef st_atomic<boost::uint_fast64_t> st_atomic_uint_fast64;
 #endif
 
 template<typename Object>
