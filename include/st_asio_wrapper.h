@@ -24,6 +24,10 @@
  * 2016.7.17	version 1.0.1
  * Support boost-1.49, it's the minimum version for st_asio_wrapper because of boost::container.
  *
+ * 2016.9.4		version 1.0.2
+ * Fix bug: if receive buffer overflow and on_msg() returns false (which means using receive buffer),
+ *  st_socket will call on_msg() again and again (asynchronously) for the same msg until receive buffer becomes available.
+ *
  */
 
 #ifndef ST_ASIO_WRAPPER_H_

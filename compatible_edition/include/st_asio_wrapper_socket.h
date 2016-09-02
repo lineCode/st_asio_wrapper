@@ -230,6 +230,7 @@ protected:
 	virtual void on_all_msg_send(InMsgType& msg) {}
 #endif
 
+	//call this in recv_handler (in subclasses) only
 	void dispatch_msg()
 	{
 		bool overflow = false;
@@ -260,7 +261,6 @@ protected:
 			set_timer(TIMER_DISPATCH_MSG, 50, boost::bind(&st_socket::timer_handler, this, _1));
 	}
 
-	//must mutex recv_msg_buffer before invoke this function
 	void do_dispatch_msg(bool need_lock)
 	{
 		boost::unique_lock<boost::shared_mutex> lock(recv_msg_buffer_mutex, boost::defer_lock);
@@ -400,7 +400,9 @@ protected:
 
 	in_container_type post_msg_buffer, send_msg_buffer;
 	out_container_type recv_msg_buffer, temp_msg_buffer;
-	//st_socket will invoke dispatch_msg() when got some msgs. if these msgs can't push into recv_msg_buffer because of receive buffer overflow,
+	//st_socket will invoke dispatch_msg() when got some msgs. if these msgs can't be pushed into recv_msg_buffer because of:
+	// 1. msg dispatching suspended;
+	// 2. post_msg_buffer not empty.
 	//st_socket will delay 50 milliseconds(non-blocking) to invoke dispatch_msg() again, and now, as you known, temp_msg_buffer is used to hold these msgs temporarily.
 	boost::shared_mutex post_msg_buffer_mutex, send_msg_buffer_mutex;
 	boost::shared_mutex recv_msg_buffer_mutex;
