@@ -230,35 +230,29 @@ protected:
 
 	void dispatch_msg()
 	{
+		auto overflow = false;
 #ifndef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
-		auto dispatch = false;
-		for (auto iter = std::begin(temp_msg_buffer); !suspend_dispatch_msg_ && !posting && iter != std::end(temp_msg_buffer);)
-			if (on_msg(*iter))
-				temp_msg_buffer.erase(iter++);
-			else
-			{
-				boost::unique_lock<boost::shared_mutex> lock(recv_msg_buffer_mutex);
-				if (recv_msg_buffer.size() < ST_ASIO_MAX_MSG_NUM) //msg receive buffer available
-				{
-					dispatch = true;
-					recv_msg_buffer.splice(std::end(recv_msg_buffer), temp_msg_buffer, iter++);
-				}
-				else
-					++iter;
-			}
-
-		if (dispatch)
-			do_dispatch_msg(true);
-#else
 		if (!temp_msg_buffer.empty())
 		{
-			boost::unique_lock<boost::shared_mutex> lock(recv_msg_buffer_mutex);
-			if (splice_helper(recv_msg_buffer, temp_msg_buffer))
-				do_dispatch_msg(false);
+			if (suspend_dispatch_msg_ || posting)
+				overflow = true;
+			else
+				for (auto iter = std::begin(temp_msg_buffer); iter != std::end(temp_msg_buffer);)
+					if (on_msg(*iter))
+						temp_msg_buffer.erase(iter++);
+					else
+						++iter;
 		}
 #endif
+		if (!overflow)
+		{
+			boost::unique_lock<boost::shared_mutex> lock(recv_msg_buffer_mutex);
+			recv_msg_buffer.splice(std::end(recv_msg_buffer), temp_msg_buffer);
+			overflow = recv_msg_buffer.size() > ST_ASIO_MAX_MSG_NUM;
+			do_dispatch_msg(false);
+		}
 
-		if (temp_msg_buffer.empty())
+		if (!overflow)
 			do_recv_msg(); //receive msg sequentially, which means second receiving only after first receiving success
 		else
 			set_timer(TIMER_DISPATCH_MSG, 50, [this](unsigned char id)->bool {return ST_THIS timer_handler(id);});
