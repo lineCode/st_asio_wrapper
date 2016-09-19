@@ -175,8 +175,9 @@ protected:
 	void do_close()
 	{
 		ST_THIS stop_all_timer();
+		ST_THIS close(); //must after stop_all_timer(), it's very important
 		ST_THIS started_ = false;
-//		ST_THIS reset_state();
+//		reset_state();
 
 		if (ST_THIS lowest_layer().is_open())
 		{
