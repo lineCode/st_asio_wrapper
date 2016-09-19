@@ -212,6 +212,7 @@ public:
 	//it should only be used by st_object_pool when this st_socket being reused or creating new st_socket.
 	void id(boost::uint_fast64_t id) {assert(!started_); if (started_) unified_out::error_out("id is unchangeable!"); else _id = id;}
 	boost::uint_fast64_t id() const {return _id;}
+	bool is_equal_to(boost::uint_fast64_t id) const {return _id == id;}
 
 	Socket& next_layer() {return next_layer_;}
 	const Socket& next_layer() const {return next_layer_;}

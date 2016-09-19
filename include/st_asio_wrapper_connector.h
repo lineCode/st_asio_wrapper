@@ -39,7 +39,7 @@ protected:
 public:
 	static const unsigned char TIMER_BEGIN = super::TIMER_END;
 	static const unsigned char TIMER_CONNECT = TIMER_BEGIN;
-	static const unsigned char TIMER_ASYNC_CLOSE = TIMER_BEGIN + 1;
+	static const unsigned char TIMER_ASYNC_SHUTDOWN = TIMER_BEGIN + 1;
 	static const unsigned char TIMER_END = TIMER_BEGIN + 10;
 
 	st_connector_base(boost::asio::io_service& io_service_) : super(io_service_), connected(false), reconnecting(true)
@@ -73,9 +73,9 @@ public:
 	void disconnect(bool reconnect = false) {force_close(reconnect);}
 	void force_close(bool reconnect = false)
 	{
-		if (1 != ST_THIS close_state)
+		if (1 != ST_THIS shutdown_state)
 		{
-			show_info("client link:", "been closed.");
+			show_info("client link:", "been shut down.");
 			reconnecting = reconnect;
 			connected = false;
 		}
@@ -96,7 +96,7 @@ public:
 		connected = false;
 
 		if (super::graceful_close(sync))
-			ST_THIS set_timer(TIMER_ASYNC_CLOSE, 10, boost::bind(&st_connector_base::async_close_handler, this, _1, ST_ASIO_GRACEFUL_CLOSE_MAX_DURATION * 100));
+			ST_THIS set_timer(TIMER_ASYNC_SHUTDOWN, 10, [this](unsigned char id)->bool {return ST_THIS async_shutdown_handler(id, ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION * 100);});
 	}
 
 	void show_info(const char* head, const char* tail) const
@@ -121,7 +121,7 @@ protected:
 		if (!ST_THIS stopped())
 		{
 			if (reconnecting && !is_connected())
-				ST_THIS lowest_layer().async_connect(server_addr, ST_THIS make_handler_error(boost::bind(&st_connector_base::connect_handler, this, boost::asio::placeholders::error)));
+				ST_THIS lowest_layer().async_connect(server_addr, ST_THIS make_handler_error([this](const boost::system::error_code& ec) {ST_THIS connect_handler(ec);}));
 			else
 				ST_THIS do_recv_msg();
 
@@ -138,10 +138,10 @@ protected:
 	virtual void on_unpack_error() {unified_out::info_out("can not unpack msg."); force_close();}
 	virtual void on_recv_error(const boost::system::error_code& ec)
 	{
-		show_info("client link:", "broken/closed", ec);
+		show_info("client link:", "broken/been shut down", ec);
 
 		force_close(ST_THIS is_closing() ? reconnecting : prepare_reconnect(ec) >= 0);
-		ST_THIS close_state = 0;
+		ST_THIS shutdown_state = 0;
 
 		if (reconnecting)
 			ST_THIS start();
@@ -171,21 +171,21 @@ protected:
 	}
 
 private:
-	bool async_close_handler(unsigned char id, ssize_t loop_num)
+	bool async_shutdown_handler(unsigned char id, ssize_t loop_num)
 	{
-		assert(TIMER_ASYNC_CLOSE == id);
+		assert(TIMER_ASYNC_SHUTDOWN == id);
 
-		if (2 == ST_THIS close_state)
+		if (2 == ST_THIS shutdown_state)
 		{
 			--loop_num;
 			if (loop_num > 0)
 			{
-				ST_THIS update_timer_info(id, 10, boost::bind(&st_connector_base::async_close_handler, this, _1, loop_num));
+				ST_THIS update_timer_info(id, 10, [loop_num, this](unsigned char id)->bool {return ST_THIS async_shutdown_handler(id, loop_num);});
 				return true;
 			}
 			else
 			{
-				unified_out::info_out("failed to graceful close within %d seconds", ST_ASIO_GRACEFUL_CLOSE_MAX_DURATION);
+				unified_out::info_out("failed to graceful shutdown within %d seconds", ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION);
 				force_close(reconnecting);
 			}
 		}

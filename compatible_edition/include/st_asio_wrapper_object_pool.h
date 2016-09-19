@@ -84,8 +84,6 @@ public:
 	typedef boost::shared_ptr<Object> object_type;
 	typedef const object_type object_ctype;
 
-	static bool is_object_equal_to(object_ctype& object_ptr, boost::uint_fast64_t id) {return object_ptr->id() == id;}
-
 protected:
 	struct st_object_hasher : public std::unary_function<object_type, size_t>
 	{
@@ -241,7 +239,7 @@ public:
 		return invalid_object_can.size();
 	}
 
-	object_type find(boost::uint64_t id)
+	object_type find(boost::uint_fast64_t id)
 	{
 		boost::shared_lock<boost::shared_mutex> lock(object_can_mutex);
 		BOOST_AUTO(iter, object_can.find(id, st_object_hasher(), st_object_equal()));
@@ -268,7 +266,7 @@ public:
 	object_type invalid_object_find(boost::uint_fast64_t id)
 	{
 		boost::shared_lock<boost::shared_mutex> lock(invalid_object_can_mutex);
-		BOOST_AUTO(iter, std::find_if(invalid_object_can.begin(), invalid_object_can.end(), boost::bind(&st_object_pool::is_object_equal_to, _1, id)));
+		BOOST_AUTO(iter, std::find_if(invalid_object_can.begin(), invalid_object_can.end(), boost::bind(&Object::is_equal_to, _1, id)));
 		return iter == invalid_object_can.end() ? object_type() : *iter;
 	}
 
@@ -276,7 +274,7 @@ public:
 	object_type invalid_object_pop(boost::uint_fast64_t id)
 	{
 		boost::shared_lock<boost::shared_mutex> lock(invalid_object_can_mutex);
-		BOOST_AUTO(iter, std::find_if(invalid_object_can.begin(), invalid_object_can.end(), boost::bind(&st_object_pool::is_equal_to, _1, id)));
+		BOOST_AUTO(iter, std::find_if(invalid_object_can.begin(), invalid_object_can.end(), boost::bind(&Object::is_equal_to, _1, id)));
 		if (iter != invalid_object_can.end())
 		{
 			BOOST_AUTO(object_ptr, *iter);
@@ -295,7 +293,7 @@ public:
 	//st_object_pool will automatically invoke this function if ST_ASIO_CLEAR_OBJECT_INTERVAL been defined
 	size_t clear_obsoleted_object()
 	{
-		container_type objects;
+		BOOST_TYPEOF(invalid_object_can) objects;
 
 		boost::unique_lock<boost::shared_mutex> lock(object_can_mutex);
 		for (BOOST_AUTO(iter, object_can.begin()); iter != object_can.end();)
@@ -306,7 +304,7 @@ public:
 #else
 				(*iter)->show_info("object:", "is obsoleted, kick it out, it will be freed in the future.");
 #endif
-				objects.insert(*iter);
+				objects.push_back(*iter);
 				iter = object_can.erase(iter);
 			}
 			else
@@ -319,7 +317,7 @@ public:
 			unified_out::warning_out(ST_ASIO_SF " object(s) been kicked out!", size);
 
 			boost::unique_lock<boost::shared_mutex> lock(invalid_object_can_mutex);
-			invalid_object_can.insert(invalid_object_can.end(), objects.begin(), objects.end());
+			invalid_object_can.splice(invalid_object_can.end(), objects);
 		}
 
 		return size;

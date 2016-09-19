@@ -141,7 +141,7 @@ protected:
 			boost::shared_lock<boost::shared_mutex> lock(close_mutex);
 			last_send_msg.restart();
 			ST_THIS next_layer().async_send_to(boost::asio::buffer(last_send_msg.data(), last_send_msg.size()), last_send_msg.peer_addr,
-				ST_THIS make_handler_error_size(boost::bind(&st_udp_socket_base::send_handler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)));
+				ST_THIS make_handler_error_size([this](const boost::system::error_code& ec, size_t bytes_transferred) {ST_THIS send_handler(ec, bytes_transferred);}));
 		}
 
 		return ST_THIS sending;
@@ -154,7 +154,7 @@ protected:
 
 		boost::shared_lock<boost::shared_mutex> lock(close_mutex);
 		ST_THIS next_layer().async_receive_from(recv_buff, peer_addr,
-			ST_THIS make_handler_error_size(boost::bind(&st_udp_socket_base::recv_handler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)));
+			ST_THIS make_handler_error_size([this](const boost::system::error_code& ec, size_t bytes_transferred) {ST_THIS recv_handler(ec, bytes_transferred);}));
 	}
 
 	virtual bool is_send_allowed() const {return ST_THIS lowest_layer().is_open() && super::is_send_allowed();}
@@ -175,8 +175,9 @@ protected:
 	void do_close()
 	{
 		ST_THIS stop_all_timer();
+		ST_THIS close(); //must after stop_all_timer(), it's very important
 		ST_THIS started_ = false;
-//		ST_THIS reset_state();
+//		reset_state();
 
 		if (ST_THIS lowest_layer().is_open())
 		{

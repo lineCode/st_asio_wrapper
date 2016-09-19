@@ -32,7 +32,7 @@ public:
 #ifdef ST_ASIO_ENHANCED_STABILITY
 	void post(const boost::function<void()>& handler) {io_service_.post(boost::bind(&st_object::post_handler, this, async_call_indicator, handler));}
 	bool is_async_calling() const {return !async_call_indicator.unique();}
-	bool is_last_async_call() const {return async_call_indicator.unique() <= 2;} //can only be used in callbacks
+	bool is_last_async_call() const {return async_call_indicator.use_count() <= 2;} //can only be called in callbacks
 
 	boost::function<void(const boost::system::error_code&)> make_handler_error(const boost::function<void(const boost::system::error_code&)>& handler) const
 		{return boost::bind(&st_object::error_handler, this, async_call_indicator, handler, boost::asio::placeholders::error);}

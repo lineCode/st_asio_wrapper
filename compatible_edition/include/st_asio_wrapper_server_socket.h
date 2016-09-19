@@ -97,7 +97,7 @@ protected:
 	//do not forget to force_close this socket(in del_client(), there's a force_close() invocation)
 	virtual void on_recv_error(const boost::system::error_code& ec)
 	{
-		ST_THIS show_info("server link:", "broken/bee shut down", ec);
+		ST_THIS show_info("server link:", "broken/been shut down", ec);
 
 #ifdef ST_ASIO_CLEAR_OBJECT_INTERVAL
 		ST_THIS force_close();

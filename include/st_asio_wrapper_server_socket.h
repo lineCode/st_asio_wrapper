@@ -35,7 +35,7 @@ protected:
 
 public:
 	static const unsigned char TIMER_BEGIN = super::TIMER_END;
-	static const unsigned char TIMER_ASYNC_CLOSE = TIMER_BEGIN;
+	static const unsigned char TIMER_ASYNC_SHUTDOWN = TIMER_BEGIN;
 	static const unsigned char TIMER_END = TIMER_BEGIN + 10;
 
 	st_server_socket_base(Server& server_) : super(server_.get_service_pump()), server(server_) {}
@@ -50,8 +50,8 @@ public:
 	void disconnect() {force_close();}
 	void force_close()
 	{
-		if (1 != ST_THIS close_state)
-			show_info("server link:", "been closed.");
+		if (1 != ST_THIS shutdown_state)
+			show_info("server link:", "been shut down.");
 
 		super::force_close();
 	}
@@ -62,7 +62,7 @@ public:
 			show_info("server link:", "been closing gracefully.");
 
 		if (super::graceful_close(sync))
-			ST_THIS set_timer(TIMER_ASYNC_CLOSE, 10, boost::bind(&st_server_socket_base::async_close_handler, this, _1, ST_ASIO_GRACEFUL_CLOSE_MAX_DURATION * 100));
+			ST_THIS set_timer(TIMER_ASYNC_SHUTDOWN, 10, [this](unsigned char id)->bool {return ST_THIS async_shutdown_handler(id, ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION * 100);});
 	}
 
 	void show_info(const char* head, const char* tail) const
@@ -97,7 +97,7 @@ protected:
 	//do not forget to force_close this socket(in del_client(), there's a force_close() invocation)
 	virtual void on_recv_error(const boost::system::error_code& ec)
 	{
-		ST_THIS show_info("server link:", "broken/closed", ec);
+		ST_THIS show_info("server link:", "broken/been shut down", ec);
 
 #ifdef ST_ASIO_CLEAR_OBJECT_INTERVAL
 		ST_THIS force_close();
@@ -105,25 +105,25 @@ protected:
 		server.del_client(boost::dynamic_pointer_cast<st_timer>(ST_THIS shared_from_this()));
 #endif
 
-		ST_THIS close_state = 0;
+		ST_THIS shutdown_state = 0;
 	}
 
 private:
-	bool async_close_handler(unsigned char id, ssize_t loop_num)
+	bool async_shutdown_handler(unsigned char id, ssize_t loop_num)
 	{
-		assert(TIMER_ASYNC_CLOSE == id);
+		assert(TIMER_ASYNC_SHUTDOWN == id);
 
-		if (2 == ST_THIS close_state)
+		if (2 == ST_THIS shutdown_state)
 		{
 			--loop_num;
 			if (loop_num > 0)
 			{
-				ST_THIS update_timer_info(id, 10, boost::bind(&st_server_socket_base::async_close_handler, this, _1, loop_num));
+				ST_THIS update_timer_info(id, 10, [loop_num, this](unsigned char id)->bool {return ST_THIS async_shutdown_handler(id, loop_num);});
 				return true;
 			}
 			else
 			{
-				unified_out::info_out("failed to graceful close within %d seconds", ST_ASIO_GRACEFUL_CLOSE_MAX_DURATION);
+				unified_out::info_out("failed to graceful shutdown within %d seconds", ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION);
 				force_close();
 			}
 		}
