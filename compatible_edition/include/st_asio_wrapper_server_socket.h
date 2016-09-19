@@ -62,7 +62,7 @@ public:
 			show_info("server link:", "been closing gracefully.");
 
 		if (super::graceful_close(sync))
-			ST_THIS set_timer(TIMER_ASYNC_SHUTDOWN, 10, boost::bind(&st_server_socket_base::async_shutdown_handler, this, _1, ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION * 1000));
+			ST_THIS set_timer(TIMER_ASYNC_SHUTDOWN, 10, boost::bind(&st_server_socket_base::async_shutdown_handler, this, _1, ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION * 100));
 	}
 
 	void show_info(const char* head, const char* tail) const
