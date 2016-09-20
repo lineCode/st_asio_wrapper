@@ -18,7 +18,7 @@
 #include "st_asio_wrapper_socket.h"
 
 #ifndef ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION
-#define ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION	5 //seconds, maximum waiting seconds while graceful shutting down
+#define ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION	5 //seconds, maximum duration while graceful shutdown
 #elif ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION <= 0
 	#error graceful shutdown duration must be bigger than zero.
 #endif
@@ -81,7 +81,7 @@ public:
 
 protected:
 	void force_close() {if (1 != shutdown_state) do_close();}
-	bool graceful_close(bool sync = true) //will block until shutting down success or time out if sync equal to true
+	bool graceful_close(bool sync = true) //will block until shutdown success or time out if sync equal to true
 	{
 		if (is_shutting_down())
 			return false;
@@ -90,7 +90,7 @@ protected:
 
 		boost::system::error_code ec;
 		ST_THIS lowest_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
-		if (ec) //graceful shutting down is impossible
+		if (ec) //graceful shutdown is impossible
 		{
 			do_close();
 			return false;
@@ -101,7 +101,7 @@ protected:
 			int loop_num = ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION * 100; //seconds to 10 milliseconds
 			while (--loop_num >= 0 && is_shutting_down())
 				boost::this_thread::sleep(boost::get_system_time() + boost::posix_time::milliseconds(10));
-			if (loop_num < 0) //graceful shutting down is impossible
+			if (loop_num < 0) //graceful shutdown is impossible
 			{
 				unified_out::info_out("failed to graceful shutdown within %d seconds", ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION);
 				do_close();

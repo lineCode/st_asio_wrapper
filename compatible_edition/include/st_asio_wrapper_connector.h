@@ -24,9 +24,7 @@
 	#error server port must be bigger than zero.
 #endif
 #ifndef ST_ASIO_RECONNECT_INTERVAL
-#define ST_ASIO_RECONNECT_INTERVAL	500 //millisecond(s)
-#elif ST_ASIO_RECONNECT_INTERVAL < 0
-	#error reconnect interval must be bigger than or equal to zero.
+#define ST_ASIO_RECONNECT_INTERVAL	500 //millisecond(s), negative number means don't reconnect the server
 #endif
 
 namespace st_asio_wrapper
@@ -93,7 +91,7 @@ public:
 		else if (!is_connected())
 			return force_close(reconnect);
 
-		show_info("client link:", "been shut down gracefully.");
+		show_info("client link:", "being shut down gracefully.");
 		reconnecting = reconnect;
 		connected = false;
 

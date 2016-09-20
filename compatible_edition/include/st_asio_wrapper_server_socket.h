@@ -59,7 +59,7 @@ public:
 	void graceful_close(bool sync = true)
 	{
 		if (!ST_THIS is_shutting_down())
-			show_info("server link:", "been shutting down gracefully.");
+			show_info("server link:", "being shut down gracefully.");
 
 		if (super::graceful_close(sync))
 			ST_THIS set_timer(TIMER_ASYNC_SHUTDOWN, 10, boost::bind(&st_server_socket_base::async_shutdown_handler, this, _1, ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION * 100));
