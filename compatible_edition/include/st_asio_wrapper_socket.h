@@ -193,7 +193,9 @@ protected:
 		posting = false;
 		sending = suspend_send_msg_ = false;
 		dispatching = suspend_dispatch_msg_ = false;
+#ifndef ST_ASIO_ENHANCED_STABILITY
 		closing = false;
+#endif
 //		started_ = false;
 	}
 
@@ -221,7 +223,11 @@ public:
 
 	virtual bool obsoleted()
 	{
-		if (started() || closing || ST_THIS is_async_calling())
+		if (started() ||
+#ifndef ST_ASIO_ENHANCED_STABILITY
+			closing ||
+#endif
+			ST_THIS is_async_calling())
 			return false;
 
 		boost::unique_lock<boost::shared_mutex> lock(recv_msg_buffer_mutex, boost::try_to_lock);
@@ -356,7 +362,13 @@ protected:
 #endif
 
 	//subclass notify st_socket the shutdown event.
-	void close() {closing = true; set_timer(TIMER_DELAY_CLOSE, ST_ASIO_DELAY_CLOSE * 1000 + 50, boost::bind(&st_socket::timer_handler, this, _1));}
+	void close()
+	{
+#ifndef ST_ASIO_ENHANCED_STABILITY
+		closing = true;
+#endif
+		set_timer(TIMER_DELAY_CLOSE, ST_ASIO_DELAY_CLOSE * 1000 + 50, boost::bind(&st_socket::timer_handler, this, _1));
+	}
 
 	//call this in recv_handler (in subclasses) only
 	void dispatch_msg()
@@ -511,7 +523,9 @@ private:
 				lowest_layer().close(ec);
 			}
 			on_close();
+#ifndef ST_ASIO_ENHANCED_STABILITY
 			closing = false;
+#endif
 			break;
 		default:
 			assert(false);
@@ -561,7 +575,9 @@ protected:
 	bool posting;
 	bool sending, suspend_send_msg_;
 	bool dispatching, suspend_dispatch_msg_;
+#ifndef ST_ASIO_ENHANCED_STABILITY
 	bool closing;
+#endif
 
 	bool started_; //has started or not
 	boost::shared_mutex start_mutex;

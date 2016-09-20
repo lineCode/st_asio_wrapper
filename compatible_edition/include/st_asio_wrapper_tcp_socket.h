@@ -18,7 +18,7 @@
 #include "st_asio_wrapper_socket.h"
 
 #ifndef ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION
-#define ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION	5 //seconds, maximum waiting seconds while graceful closing
+#define ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION	5 //seconds, maximum waiting seconds while graceful shutting down
 #elif ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION <= 0
 	#error graceful shutdown duration must be bigger than zero.
 #endif
@@ -45,7 +45,7 @@ protected:
 	st_tcp_socket_base(boost::asio::io_service& io_service_, Arg& arg) : super(io_service_, arg), unpacker_(boost::make_shared<Unpacker>()), shutdown_state(0) {}
 
 public:
-	virtual bool obsoleted() {return !is_closing() && super::obsoleted();}
+	virtual bool obsoleted() {return !is_shutting_down() && super::obsoleted();}
 
 	//reset all, be ensure that there's no any operations performed on this st_tcp_socket_base when invoke it
 	void reset() {reset_state(); shutdown_state = 0; super::reset();}
@@ -55,7 +55,7 @@ public:
 		super::reset_state();
 	}
 
-	bool is_closing() const {return 0 != shutdown_state;}
+	bool is_shutting_down() const {return 0 != shutdown_state;}
 
 	//get or change the unpacker at runtime
 	//changing unpacker at runtime is not thread-safe, this operation can only be done in on_msg(), reset() or constructor, please pay special attention
@@ -81,16 +81,16 @@ public:
 
 protected:
 	void force_close() {if (1 != shutdown_state) do_close();}
-	bool graceful_close(bool sync = true) //will block until closing success or time out if sync equal to true
+	bool graceful_close(bool sync = true) //will block until shutting down success or time out if sync equal to true
 	{
-		if (is_closing())
+		if (is_shutting_down())
 			return false;
 		else
 			shutdown_state = 2;
 
 		boost::system::error_code ec;
 		ST_THIS lowest_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
-		if (ec) //graceful closing is impossible
+		if (ec) //graceful shutting down is impossible
 		{
 			do_close();
 			return false;
@@ -99,9 +99,9 @@ protected:
 		if (sync)
 		{
 			int loop_num = ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION * 100; //seconds to 10 milliseconds
-			while (--loop_num >= 0 && is_closing())
+			while (--loop_num >= 0 && is_shutting_down())
 				boost::this_thread::sleep(boost::get_system_time() + boost::posix_time::milliseconds(10));
-			if (loop_num < 0) //graceful closing is impossible
+			if (loop_num < 0) //graceful shutting down is impossible
 			{
 				unified_out::info_out("failed to graceful shutdown within %d seconds", ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION);
 				do_close();
@@ -155,7 +155,7 @@ protected:
 			ST_THIS make_handler_error_size(boost::bind(&st_tcp_socket_base::recv_handler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)));
 	}
 
-	virtual bool is_send_allowed() const {return !is_closing() && super::is_send_allowed();}
+	virtual bool is_send_allowed() const {return !is_shutting_down() && super::is_send_allowed();}
 	//can send data or not(just put into send buffer)
 
 	//msg can not be unpacked

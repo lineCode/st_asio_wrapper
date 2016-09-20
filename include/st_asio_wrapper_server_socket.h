@@ -58,8 +58,8 @@ public:
 
 	void graceful_close(bool sync = true)
 	{
-		if (!ST_THIS is_closing())
-			show_info("server link:", "been closing gracefully.");
+		if (!ST_THIS is_shutting_down())
+			show_info("server link:", "being shut down gracefully.");
 
 		if (super::graceful_close(sync))
 			ST_THIS set_timer(TIMER_ASYNC_SHUTDOWN, 10, [this](unsigned char id)->bool {return ST_THIS async_shutdown_handler(id, ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION * 100);});

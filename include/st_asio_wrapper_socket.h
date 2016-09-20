@@ -192,7 +192,9 @@ protected:
 		posting = false;
 		sending = suspend_send_msg_ = false;
 		dispatching = suspend_dispatch_msg_ = false;
+#ifndef ST_ASIO_ENHANCED_STABILITY
 		closing = false;
+#endif
 //		started_ = false;
 	}
 
@@ -208,7 +210,7 @@ protected:
 
 public:
 	//please do not change id at runtime via the following function, except this st_socket is not managed by st_object_pool,
-	//it should only be used by st_object_pool when this st_socket being reused or creating new st_socket.
+	//it should only be used by st_object_pool when reusing or creating new st_socket.
 	void id(uint_fast64_t id) {assert(!started_); if (started_) unified_out::error_out("id is unchangeable!"); else _id = id;}
 	uint_fast64_t id() const {return _id;}
 	bool is_equal_to(uint_fast64_t id) const {return _id == id;}
@@ -220,7 +222,11 @@ public:
 
 	virtual bool obsoleted()
 	{
-		if (started() || closing || ST_THIS is_async_calling())
+		if (started() ||
+#ifndef ST_ASIO_ENHANCED_STABILITY
+			closing ||
+#endif
+			ST_THIS is_async_calling())
 			return false;
 
 		boost::unique_lock<boost::shared_mutex> lock(recv_msg_buffer_mutex, boost::try_to_lock);
@@ -353,7 +359,13 @@ protected:
 #endif
 
 	//subclass notify st_socket the shutdown event.
-	void close() {closing = true; set_timer(TIMER_DELAY_CLOSE, ST_ASIO_DELAY_CLOSE * 1000 + 50, [this](unsigned char id)->bool {return ST_THIS timer_handler(id);});}
+	void close()
+	{
+#ifndef ST_ASIO_ENHANCED_STABILITY
+		closing = true;
+#endif
+		set_timer(TIMER_DELAY_CLOSE, ST_ASIO_DELAY_CLOSE * 1000 + 50, [this](unsigned char id)->bool {return ST_THIS timer_handler(id);});
+	}
 
 	//call this in recv_handler (in subclasses) only
 	void dispatch_msg()
@@ -508,7 +520,9 @@ private:
 				lowest_layer().close(ec);
 			}
 			on_close();
+#ifndef ST_ASIO_ENHANCED_STABILITY
 			closing = false;
+#endif
 			break;
 		default:
 			assert(false);
@@ -558,7 +572,9 @@ protected:
 	bool posting;
 	bool sending, suspend_send_msg_;
 	bool dispatching, suspend_dispatch_msg_;
+#ifndef ST_ASIO_ENHANCED_STABILITY
 	bool closing;
+#endif
 
 	bool started_; //has started or not
 	boost::shared_mutex start_mutex;

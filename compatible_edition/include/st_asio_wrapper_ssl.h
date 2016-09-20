@@ -93,7 +93,7 @@ protected:
 	bool shutdown_ssl()
 	{
 		bool re = false;
-		if (!ST_THIS is_closing() && authorized_)
+		if (!ST_THIS is_shutting_down() && authorized_)
 		{
 			ST_THIS show_info("ssl client link:", "been shutting down.");
 			ST_THIS shutdown_state = 2;

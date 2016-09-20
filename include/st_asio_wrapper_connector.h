@@ -86,12 +86,12 @@ public:
 	//sync must be false if you call graceful_close in on_msg
 	void graceful_close(bool reconnect = false, bool sync = true)
 	{
-		if (ST_THIS is_closing())
+		if (ST_THIS is_shutting_down())
 			return;
 		else if (!is_connected())
 			return force_close(reconnect);
 
-		show_info("client link:", "been closing gracefully.");
+		show_info("client link:", "being shut down gracefully.");
 		reconnecting = reconnect;
 		connected = false;
 
@@ -140,7 +140,7 @@ protected:
 	{
 		show_info("client link:", "broken/been shut down", ec);
 
-		force_close(ST_THIS is_closing() ? reconnecting : prepare_reconnect(ec) >= 0);
+		force_close(ST_THIS is_shutting_down() ? reconnecting : prepare_reconnect(ec) >= 0);
 		ST_THIS shutdown_state = 0;
 
 		if (reconnecting)
