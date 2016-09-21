@@ -180,12 +180,12 @@ public:
 		{
 #ifdef ST_ASIO_CLEAR_OBJECT_INTERVAL
 			//method #1
-			//notice: these methods need to define ST_ASIO_CLEAR_OBJECT_INTERVAL macro, because it just shutdown the st_socket,
+			//notice: these methods need to define ST_ASIO_CLEAR_OBJECT_INTERVAL macro, because it just shut down the st_socket,
 			//not really remove them from object pool, this will cause test_client still send data via them, and wait responses from them.
 			//for this scenario, the smaller ST_ASIO_CLEAR_OBJECT_INTERVAL macro is, the better experience you will get, so set it to 1 second.
 		case 0: do_something_to_one([&n](object_ctype& item) {return n-- > 0 ? item->graceful_shutdown(), false : true;});				break;
-		case 1: do_something_to_one([&n](object_ctype& item) {return n-- > 0 ? item->graceful_shutdown(false, false), false : true;}); break;
-		case 2: do_something_to_one([&n](object_ctype& item) {return n-- > 0 ? item->force_shutdown(), false : true;});				break;
+		case 1: do_something_to_one([&n](object_ctype& item) {return n-- > 0 ? item->graceful_shutdown(false, false), false : true;});	break;
+		case 2: do_something_to_one([&n](object_ctype& item) {return n-- > 0 ? item->force_shutdown(), false : true;});					break;
 #else
 			//method #2
 			//this is a equivalence of calling i_server::del_client in st_server_socket_base::on_recv_error(see st_server_socket_base for more details).
@@ -196,7 +196,7 @@ public:
 			//if you just want to reconnect to the server, you should do it like this:
 		case 3: do_something_to_one([&n](object_ctype& item) {return n-- > 0 ? item->graceful_shutdown(true), false : true;});			break;
 		case 4: do_something_to_one([&n](object_ctype& item) {return n-- > 0 ? item->graceful_shutdown(true, false), false : true;});	break;
-		case 5: do_something_to_one([&n](object_ctype& item) {return n-- > 0 ? item->force_shutdown(true), false : true;});			break;
+		case 5: do_something_to_one([&n](object_ctype& item) {return n-- > 0 ? item->force_shutdown(true), false : true;});				break;
 		}
 	}
 

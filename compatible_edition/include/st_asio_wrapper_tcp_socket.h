@@ -80,8 +80,8 @@ public:
 	///////////////////////////////////////////////////
 
 protected:
-	void force_close() {if (1 != shutdown_state) do_close();}
-	bool graceful_close(bool sync = true) //will block until shutdown success or time out if sync equal to true
+	void force_shutdown() {if (1 != shutdown_state) shutdown();}
+	bool graceful_shutdown(bool sync = true) //will block until shutdown success or time out if sync equal to true
 	{
 		if (is_shutting_down())
 			return false;
@@ -92,7 +92,7 @@ protected:
 		ST_THIS lowest_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
 		if (ec) //graceful shutdown is impossible
 		{
-			do_close();
+			shutdown();
 			return false;
 		}
 
@@ -104,7 +104,7 @@ protected:
 			if (loop_num < 0) //graceful shutdown is impossible
 			{
 				unified_out::info_out("failed to graceful shutdown within %d seconds", ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION);
-				do_close();
+				shutdown();
 			}
 		}
 
@@ -168,7 +168,7 @@ protected:
 
 	virtual bool on_msg_handle(out_msg_type& msg, bool link_down) {unified_out::debug_out("recv(" ST_ASIO_SF "): %s", msg.size(), msg.data()); return true;}
 
-	void do_close()
+	void shutdown()
 	{
 		shutdown_state = 1;
 		ST_THIS stop_all_timer();

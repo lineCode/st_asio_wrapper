@@ -70,8 +70,8 @@ public:
 	bool is_connected() const {return connected;}
 
 	//if the connection is broken unexpectedly, st_connector will try to reconnect to the server automatically.
-	void disconnect(bool reconnect = false) {force_close(reconnect);}
-	void force_close(bool reconnect = false)
+	void disconnect(bool reconnect = false) {force_shutdown(reconnect);}
+	void force_shutdown(bool reconnect = false)
 	{
 		if (1 != ST_THIS shutdown_state)
 		{
@@ -80,22 +80,22 @@ public:
 			connected = false;
 		}
 
-		super::force_close();
+		super::force_shutdown();
 	}
 
-	//sync must be false if you call graceful_close in on_msg
-	void graceful_close(bool reconnect = false, bool sync = true)
+	//sync must be false if you call graceful_shutdown in on_msg
+	void graceful_shutdown(bool reconnect = false, bool sync = true)
 	{
 		if (ST_THIS is_shutting_down())
 			return;
 		else if (!is_connected())
-			return force_close(reconnect);
+			return force_shutdown(reconnect);
 
 		show_info("client link:", "being shut down gracefully.");
 		reconnecting = reconnect;
 		connected = false;
 
-		if (super::graceful_close(sync))
+		if (super::graceful_shutdown(sync))
 			ST_THIS set_timer(TIMER_ASYNC_SHUTDOWN, 10, boost::bind(&st_connector_base::async_shutdown_handler, this, _1, ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION * 100));
 	}
 
@@ -135,12 +135,12 @@ protected:
 	virtual int prepare_reconnect(const boost::system::error_code& ec) {return ST_ASIO_RECONNECT_INTERVAL;}
 	virtual void on_connect() {unified_out::info_out("connecting success.");}
 	virtual bool is_send_allowed() const {return is_connected() && super::is_send_allowed();}
-	virtual void on_unpack_error() {unified_out::info_out("can not unpack msg."); force_close();}
+	virtual void on_unpack_error() {unified_out::info_out("can not unpack msg."); force_shutdown();}
 	virtual void on_recv_error(const boost::system::error_code& ec)
 	{
 		show_info("client link:", "broken/been shut down", ec);
 
-		force_close(ST_THIS is_shutting_down() ? reconnecting : prepare_reconnect(ec) >= 0);
+		force_shutdown(ST_THIS is_shutting_down() ? reconnecting : prepare_reconnect(ec) >= 0);
 		ST_THIS shutdown_state = 0;
 
 		if (reconnecting)
@@ -194,7 +194,7 @@ private:
 			else
 			{
 				unified_out::info_out("failed to graceful shutdown within %d seconds", ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION);
-				force_close(reconnecting);
+				force_shutdown(reconnecting);
 			}
 		}
 
