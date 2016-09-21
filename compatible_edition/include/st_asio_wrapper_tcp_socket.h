@@ -159,7 +159,7 @@ protected:
 	//can send data or not(just put into send buffer)
 
 	//msg can not be unpacked
-	//the link is still available, so don't need to shutdown the st_tcp_socket_base at both client and server endpoint
+	//the link is still available, so don't need to shutdown this st_tcp_socket_base at both client and server endpoint
 	virtual void on_unpack_error() = 0;
 
 #ifndef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER

@@ -134,7 +134,7 @@ protected:
 
 	virtual void start_next_accept()
 	{
-		auto client_ptr = ST_THIS create_object(boost::ref(*this));
+		auto client_ptr = ST_THIS create_object(*this);
 		acceptor.async_accept(client_ptr->lowest_layer(), [=](const boost::system::error_code& ec) {ST_THIS accept_handler(ec, client_ptr);});
 	}
 

@@ -24,6 +24,7 @@ class st_tcp_client_base : public st_client<Socket, Pool>
 {
 protected:
 	typedef st_client<Socket, Pool> super;
+
 public:
 	using super::TIMER_BEGIN;
 	using super::TIMER_END;
