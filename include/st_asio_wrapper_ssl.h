@@ -41,23 +41,23 @@ public:
 	virtual void reset() {authorized_ = false; super::reset();}
 	bool authorized() const {return authorized_;}
 
-	void disconnect(bool reconnect = false) {force_close(reconnect);}
-	void force_close(bool reconnect = false)
+	void disconnect(bool reconnect = false) {force_shutdown(reconnect);}
+	void force_shutdown(bool reconnect = false)
 	{
 		if (reconnect)
 			unified_out::error_out("boost::asio::ssl::stream not support reuse!");
 
 		if (!shutdown_ssl())
-			super::force_close(false);
+			super::force_shutdown(false);
 	}
 
-	void graceful_close(bool reconnect = false, bool sync = true)
+	void graceful_shutdown(bool reconnect = false, bool sync = true)
 	{
 		if (reconnect)
 			unified_out::error_out("boost::asio::ssl::stream not support reuse!");
 
 		if (!shutdown_ssl())
-			super::graceful_close(false, sync);
+			super::graceful_shutdown(false, sync);
 	}
 
 protected:
@@ -132,7 +132,7 @@ private:
 			do_start();
 		}
 		else
-			force_close(false);
+			force_shutdown(false);
 	}
 
 protected:

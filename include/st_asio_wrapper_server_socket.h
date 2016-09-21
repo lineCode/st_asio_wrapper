@@ -47,21 +47,21 @@ public:
 	//and then do not forget to invoke st_server_socket_base::reset() to initialize father's member variables
 	virtual void reset() {super::reset();}
 
-	void disconnect() {force_close();}
-	void force_close()
+	void disconnect() {force_shutdown();}
+	void force_shutdown()
 	{
 		if (1 != ST_THIS shutdown_state)
 			show_info("server link:", "been shut down.");
 
-		super::force_close();
+		super::force_shutdown();
 	}
 
-	void graceful_close(bool sync = true)
+	void graceful_shutdown(bool sync = true)
 	{
 		if (!ST_THIS is_shutting_down())
 			show_info("server link:", "being shut down gracefully.");
 
-		if (super::graceful_close(sync))
+		if (super::graceful_shutdown(sync))
 			ST_THIS set_timer(TIMER_ASYNC_SHUTDOWN, 10, [this](unsigned char id)->bool {return ST_THIS async_shutdown_handler(id, ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION * 100);});
 	}
 
@@ -93,14 +93,14 @@ protected:
 		return false;
 	}
 
-	virtual void on_unpack_error() {unified_out::error_out("can not unpack msg."); ST_THIS force_close();}
-	//do not forget to force_close this socket(in del_client(), there's a force_close() invocation)
+	virtual void on_unpack_error() {unified_out::error_out("can not unpack msg."); ST_THIS force_shutdown();}
+	//do not forget to force_shutdown this socket(in del_client(), there's a force_shutdown() invocation)
 	virtual void on_recv_error(const boost::system::error_code& ec)
 	{
 		ST_THIS show_info("server link:", "broken/been shut down", ec);
 
 #ifdef ST_ASIO_CLEAR_OBJECT_INTERVAL
-		ST_THIS force_close();
+		ST_THIS force_shutdown();
 #else
 		server.del_client(boost::dynamic_pointer_cast<st_timer>(ST_THIS shared_from_this()));
 #endif
@@ -124,7 +124,7 @@ private:
 			else
 			{
 				unified_out::info_out("failed to graceful shutdown within %d seconds", ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION);
-				force_close();
+				force_shutdown();
 			}
 		}
 
