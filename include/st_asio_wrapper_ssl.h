@@ -87,7 +87,7 @@ protected:
 		else
 			unified_out::error_out("handshake failed: %s", ec.message().data());
 	}
-	virtual bool is_send_allowed() const {return authorized() && super::is_send_allowed();}
+	virtual bool is_send_allowed() {return authorized() && super::is_send_allowed();}
 
 	bool shutdown_ssl()
 	{

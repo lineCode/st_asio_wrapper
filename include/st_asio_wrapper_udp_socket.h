@@ -157,7 +157,7 @@ protected:
 			ST_THIS make_handler_error_size([this](const boost::system::error_code& ec, size_t bytes_transferred) {ST_THIS recv_handler(ec, bytes_transferred);}));
 	}
 
-	virtual bool is_send_allowed() const {return ST_THIS lowest_layer().is_open() && super::is_send_allowed();}
+	virtual bool is_send_allowed() {return ST_THIS lowest_layer().is_open() && super::is_send_allowed();}
 	//can send data or not(just put into send buffer)
 
 	virtual void on_recv_error(const boost::system::error_code& ec)

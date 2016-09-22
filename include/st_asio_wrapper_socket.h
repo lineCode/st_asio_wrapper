@@ -315,7 +315,8 @@ protected:
 	virtual bool do_send_msg() = 0; //must mutex send_msg_buffer before invoke this function
 	virtual void do_recv_msg() = 0;
 
-	virtual bool is_send_allowed() const {return !suspend_send_msg_;} //can send msg or not(just put into send buffer)
+	virtual bool is_closable() {return true;}
+	virtual bool is_send_allowed() {return !suspend_send_msg_;} //can send msg or not(just put into send buffer)
 
 	//generally, you don't have to rewrite this to maintain the status of connections(TCP)
 	virtual void on_send_error(const boost::system::error_code& ec) {unified_out::error_out("send msg error (%d %s)", ec.value(), ec.message().data());}
@@ -361,10 +362,13 @@ protected:
 	//subclass notify st_socket the shutdown event.
 	void close()
 	{
+		if (is_closable())
+		{
 #ifndef ST_ASIO_ENHANCED_STABILITY
-		closing = true;
+			closing = true;
 #endif
-		set_timer(TIMER_DELAY_CLOSE, ST_ASIO_DELAY_CLOSE * 1000 + 50, [this](unsigned char id)->bool {return ST_THIS timer_handler(id);});
+			set_timer(TIMER_DELAY_CLOSE, ST_ASIO_DELAY_CLOSE * 1000 + 50, [this](unsigned char id)->bool {return ST_THIS timer_handler(id);});
+		}
 	}
 
 	//call this in recv_handler (in subclasses) only

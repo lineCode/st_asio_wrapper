@@ -154,7 +154,7 @@ protected:
 			ST_THIS make_handler_error_size([this](const boost::system::error_code& ec, size_t bytes_transferred) {ST_THIS recv_handler(ec, bytes_transferred);}));
 	}
 
-	virtual bool is_send_allowed() const {return !is_shutting_down() && super::is_send_allowed();}
+	virtual bool is_send_allowed() {return !is_shutting_down() && super::is_send_allowed();}
 	//can send data or not(just put into send buffer)
 
 	//msg can not be unpacked

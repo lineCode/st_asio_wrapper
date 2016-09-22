@@ -298,11 +298,6 @@ public:
 		for (auto iter = std::begin(object_can); iter != std::end(object_can);)
 			if ((*iter).unique() && (*iter)->obsoleted())
 			{
-#ifdef ST_ASIO_REUSE_OBJECT
-				(*iter)->show_info("object:", "is obsoleted, kick it out, it will be reused in the future.");
-#else
-				(*iter)->show_info("object:", "is obsoleted, kick it out, it will be freed in the future.");
-#endif
 				objects.push_back(std::move(*iter));
 				iter = object_can.erase(iter);
 			}

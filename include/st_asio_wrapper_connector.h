@@ -133,7 +133,8 @@ protected:
 	//after how much time(ms), st_connector will try to reconnect to the server, negative means give up.
 	virtual int prepare_reconnect(const boost::system::error_code& ec) {return ST_ASIO_RECONNECT_INTERVAL;}
 	virtual void on_connect() {unified_out::info_out("connecting success.");}
-	virtual bool is_send_allowed() const {return is_connected() && super::is_send_allowed();}
+	virtual bool is_closable() {return !reconnecting;}
+	virtual bool is_send_allowed() {return is_connected() && super::is_send_allowed();}
 	virtual void on_unpack_error() {unified_out::info_out("can not unpack msg."); force_shutdown();}
 	virtual void on_recv_error(const boost::system::error_code& ec)
 	{
