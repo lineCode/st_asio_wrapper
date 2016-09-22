@@ -238,6 +238,7 @@ int main(int argc, const char* argv[])
 	//client_ptr->set_server_addr(port, ip); //we don't have to set server address at here, the following do_something_to_all will do it for me
 	//some other initializations according to your business
 	client.add_client(client_ptr, false);
+	client_ptr.reset(); //important, otherwise, st_object_pool will not be able to free or reuse this object.
 
 	//method #2, add clients first without any arguments, then set the server address.
 	for (size_t i = 1; i < link_num / 2; ++i)
