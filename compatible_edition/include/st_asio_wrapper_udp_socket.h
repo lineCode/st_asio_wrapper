@@ -157,7 +157,7 @@ protected:
 			ST_THIS make_handler_error_size(boost::bind(&st_udp_socket_base::recv_handler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)));
 	}
 
-	virtual bool is_send_allowed() const {return ST_THIS lowest_layer().is_open() && super::is_send_allowed();}
+	virtual bool is_send_allowed() {return ST_THIS lowest_layer().is_open() && super::is_send_allowed();}
 	//can send data or not(just put into send buffer)
 
 	virtual void on_recv_error(const boost::system::error_code& ec)

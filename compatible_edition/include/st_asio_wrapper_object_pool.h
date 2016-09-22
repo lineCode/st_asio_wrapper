@@ -299,11 +299,6 @@ public:
 		for (BOOST_AUTO(iter, object_can.begin()); iter != object_can.end();)
 			if ((*iter).unique() && (*iter)->obsoleted())
 			{
-#ifdef ST_ASIO_REUSE_OBJECT
-				(*iter)->show_info("object:", "is obsoleted, kick it out, it will be reused in the future.");
-#else
-				(*iter)->show_info("object:", "is obsoleted, kick it out, it will be freed in the future.");
-#endif
 				objects.push_back(*iter);
 				iter = object_can.erase(iter);
 			}

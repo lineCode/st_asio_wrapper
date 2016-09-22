@@ -155,7 +155,7 @@ protected:
 			ST_THIS make_handler_error_size(boost::bind(&st_tcp_socket_base::recv_handler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)));
 	}
 
-	virtual bool is_send_allowed() const {return !is_shutting_down() && super::is_send_allowed();}
+	virtual bool is_send_allowed() {return !is_shutting_down() && super::is_send_allowed();}
 	//can send data or not(just put into send buffer)
 
 	//msg can not be unpacked
