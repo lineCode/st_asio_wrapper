@@ -56,7 +56,11 @@ public:
 		super::force_shutdown();
 	}
 
-	void graceful_shutdown(bool sync = true)
+	//sync must be false if you call graceful_shutdown in on_msg
+	//furthermore, you're recommended to call this function with sync equal to false in all service threads,
+	//all callbacks will be called in service threads.
+	//this function is not thread safe, please note.
+	void graceful_shutdown(bool sync = false)
 	{
 		if (!ST_THIS is_shutting_down())
 			show_info("server link:", "being shut down gracefully.");

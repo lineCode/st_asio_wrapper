@@ -16,6 +16,7 @@
 #include <boost/asio/ssl.hpp>
 
 #include "st_asio_wrapper_object_pool.h"
+#include "st_asio_wrapper_connector.h"
 #include "st_asio_wrapper_tcp_client.h"
 #include "st_asio_wrapper_server.h"
 

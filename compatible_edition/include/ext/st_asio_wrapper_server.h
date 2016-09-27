@@ -15,7 +15,6 @@
 
 #include "st_asio_wrapper_packer.h"
 #include "st_asio_wrapper_unpacker.h"
-
 #include "../st_asio_wrapper_server.h"
 
 #ifndef ST_ASIO_DEFAULT_PACKER
