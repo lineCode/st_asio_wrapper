@@ -18,7 +18,7 @@ namespace st_asio_wrapper
 {
 
 服务端服务器类，主要功能是监听和接受连接，连接管理继承于Pool
-template<typename Socket = st_server_socket, typename Pool = st_object_pool<Socket>, typename Server = i_server>
+template<typename Socket, typename Pool = st_object_pool<Socket>, typename Server = i_server>
 class st_server_base : public Server, public Pool
 {
 public:
@@ -64,6 +64,11 @@ ssl使用。
 	void safe_broadcast_native_msg(const char* const pstr[], const size_t len[], size_t num, bool can_overflow = false);
 对每一个连接调用st_tcp_socket中的同名函数。
 
+	void disconnect(typename Pool::object_ctype& client_ptr);
+	void force_shutdown(typename Pool::object_ctype& client_ptr);
+	void graceful_shutdown(typename Pool::object_ctype& client_ptr, bool sync = true);
+先从对象池中删除client_ptr，然后调用client_ptr的同名函数。
+
 protected:
 	virtual void init();
 	virtual void uninit();
@@ -91,7 +96,6 @@ protected:
 	boost::asio::ip::tcp::acceptor acceptor;
 连接异步接受器。
 };
-typedef st_server_base<> st_server;
 
 } //namespace
 
