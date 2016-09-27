@@ -15,7 +15,6 @@ namespace st_asio_wrapper
 
 带连接功能的st_tcp_socket，算是一个真正的客户端了
 template <typename Packer, typename Unpacker, typename Socket = boost::asio::ip::tcp::socket>
-
 class st_connector_base : public st_tcp_socket_base<Socket, Packer, Unpacker>
 {
 public:

@@ -89,9 +89,9 @@ ssl使用。
 清空所有buffer。
 
 public:
-	void id(uint_fast64_t id) {_id = id;}
+	void id(uint_fast64_t id);
 
-	uint_fast64_t id() const {return _id;}
+	uint_fast64_t id() const;
 id的设置与获取，注意使用者不可设置id，只有st_socket的创建者（st_object_pool或者其继承者）才可设置id，
 除非这个st_socket没有被任何对象池管理。
 

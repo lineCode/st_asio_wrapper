@@ -106,7 +106,7 @@ protected:
 	virtual bool on_msg_handle(msg_type& msg, bool link_down);
 重写st_socket的on_msg_handle，功能是打印消息到控制台，使用者重写这个函数以处理消息。
 
-	void shuwdown();
+	void shutdown();
 关闭套接字，停止所有定时器，直接派发所有剩余消息，最后启动一个定时器，如果定义了ST_ASIO_ENHANCED_STABILITY宏，则这个将周期性的检测
 当前套接字是否可以安全地被重用或释放，如果未定义，则简单的在ST_ASIO_DELAY_CLOSE秒后认为当前大量接字可被安全地重用或释放。
 

@@ -115,7 +115,7 @@ protected:
 	boost::shared_ptr<i_udp_unpacker<typename Packer::msg_type>> unpacker_;
 	boost::asio::ip::udp::endpoint peer_addr, local_addr;
 异步接收udp消息时，asio需要一个endpoint，在整个异步接收过程中，这个endpoint必须有效，所以它是一个成员变量，
-它只代表上一次接收udp消息时的对端地址，对于已经接收到的udp消息，对端地方保存在out_msg_type里面。
+它只代表上一次接收udp消息时的对端地址，对于已经接收到的udp消息，对端地址保存在out_msg_type里面。
 
 	boost::shared_mutex shutdown_mutex;
 让shutdown函数线程安全。

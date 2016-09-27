@@ -20,7 +20,7 @@ ssl使用。
 
 	typename Pool::object_type add_client();
 创建或者重用一个对象，然后以reset为true调用父类的add_client。注意未设地址，将使用SERVER_IP和SERVER_PORT
-作为服务端地址，如果你要用别的地方，请用下面那个add_client。
+作为服务端地址，如果你要用别的地址，请用下面那个add_client。
 
 	typename Pool::object_type add_client(unsigned short port, const std::string& ip = std::string());
 创建或者重用一个对象，设置服务端地址，然后以reset为true调用父类的add_client。
@@ -48,8 +48,8 @@ ssl使用。
 	void force_shutdown(bool reconnect = false);
 	void graceful_shutdown(typename Pool::object_ctype& client_ptr, bool sync = true);
 	void graceful_shutdown(bool reconnect = false, bool sync = true);
-先从对象池中删除client_ptr，然后以默认参数调用client_ptr的同名函数。对于没有client_ptr的重载，对所有对象调用同名函数，参数直接传递。
-那么如果我想以非默认参数调用client_ptr的两名函数怎么办呢，你可以直接通过client_ptr调用，这就没st_tcp_client什么事了。
+先从对象池中删除client_ptr，然后以默认参数调用client_ptr的同名函数。对于没有client_ptr参数的重载，对所有对象调用同名函数，参数直接传递。
+那么如果我想以非默认参数调用client_ptr的同名函数怎么办呢，你可以直接通过client_ptr调用，这就没st_tcp_client什么事了。
 
 protected:
 	virtual void uninit();
