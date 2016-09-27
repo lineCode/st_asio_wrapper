@@ -13,19 +13,10 @@
 #ifndef ST_ASIO_WRAPPER_SERVER_SOCKET_H_
 #define ST_ASIO_WRAPPER_SERVER_SOCKET_H_
 
-#include "st_asio_wrapper_service_pump.h"
 #include "st_asio_wrapper_tcp_socket.h"
 
 namespace st_asio_wrapper
 {
-
-class i_server
-{
-public:
-	virtual st_service_pump& get_service_pump() = 0;
-	virtual const st_service_pump& get_service_pump() const = 0;
-	virtual bool del_client(const boost::shared_ptr<st_timer>& client_ptr) = 0;
-};
 
 template<typename Packer, typename Unpacker, typename Server = i_server, typename Socket = boost::asio::ip::tcp::socket>
 class st_server_socket_base : public st_tcp_socket_base<Socket, Packer, Unpacker>, public boost::enable_shared_from_this<st_server_socket_base<Packer, Unpacker, Server, Socket>>

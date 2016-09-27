@@ -56,6 +56,16 @@
 
 namespace st_asio_wrapper
 {
+	class st_service_pump;
+	class st_timer;
+	class i_server
+	{
+	public:
+		virtual st_service_pump& get_service_pump() = 0;
+		virtual const st_service_pump& get_service_pump() const = 0;
+		virtual bool del_client(const boost::shared_ptr<st_timer>& client_ptr) = 0;
+	};
+
 	class i_buffer
 	{
 	public:

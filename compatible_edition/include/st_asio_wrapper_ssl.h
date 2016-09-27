@@ -18,6 +18,7 @@
 #include "st_asio_wrapper_object_pool.h"
 #include "st_asio_wrapper_connector.h"
 #include "st_asio_wrapper_tcp_client.h"
+#include "st_asio_wrapper_server_socket.h"
 #include "st_asio_wrapper_server.h"
 
 #ifdef ST_ASIO_REUSE_OBJECT
