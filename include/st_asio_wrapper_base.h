@@ -45,7 +45,6 @@ static_assert(ST_ASIO_MAX_MSG_NUM > 0, "message capacity must be bigger than zer
 #if defined _MSC_VER
 #define ST_ASIO_SF "%Iu"
 #define ST_THIS //workaround to make up the BOOST_AUTO's defect under vc2008 and compiler bugs before vc2012
-#define ssize_t SSIZE_T
 #else // defined __GNUC__
 #define ST_ASIO_SF "%zu"
 #define ST_THIS this->

@@ -99,12 +99,11 @@ protected:
 #else
 		server.del_client(boost::dynamic_pointer_cast<st_timer>(ST_THIS shared_from_this()));
 #endif
-
 		ST_THIS shutdown_state = 0;
 	}
 
 private:
-	bool async_shutdown_handler(unsigned char id, ssize_t loop_num)
+	bool async_shutdown_handler(unsigned char id, size_t loop_num)
 	{
 		assert(TIMER_ASYNC_SHUTDOWN == id);
 
