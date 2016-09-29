@@ -266,6 +266,7 @@ public:
 	//if you use can_overflow = true to invoke send_msg or send_native_msg, it will always succeed no matter whether the send buffer is available or not,
 	//this can exhaust all virtual memory, please pay special attentions.
 	bool is_send_buffer_available() const {return send_msg_buffer.size() < ST_ASIO_MAX_MSG_NUM;}
+	bool is_send_buffer_overflow() const {return send_msg_buffer.size() > ST_ASIO_MAX_MSG_NUM;}
 
 	//don't use the packer but insert into send buffer directly
 	bool direct_send_msg(const InMsgType& msg, bool can_overflow = false) {return direct_send_msg(InMsgType(msg), can_overflow);}
@@ -357,7 +358,7 @@ protected:
 #ifndef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
 		if (!temp_msg_buffer.empty())
 		{
-			if (suspend_dispatch_msg_ || !is_send_buffer_available())
+			if (suspend_dispatch_msg_ || is_send_buffer_overflow())
 				overflow = true;
 			else
 			{
@@ -392,7 +393,7 @@ protected:
 
 	void do_dispatch_msg(bool need_lock)
 	{
-		if (suspend_dispatch_msg_ || !is_send_buffer_available())
+		if (suspend_dispatch_msg_ || is_send_buffer_overflow())
 			return;
 
 		boost::unique_lock<boost::shared_mutex> lock(recv_msg_buffer_mutex, boost::defer_lock);
