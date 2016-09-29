@@ -13,7 +13,7 @@
 //#define ST_ASIO_USE_SYSTEM_TIMER
 
 //use the following macro to control the type of packer and unpacker
-#define PACKER_UNPACKER_TYPE	0
+#define PACKER_UNPACKER_TYPE	1
 //0-default packer and unpacker, head(length) + body
 //1-default replaceable_packer and replaceable_unpacker, head(length) + body
 //2-fixed length unpacker
@@ -91,9 +91,9 @@ protected:
 	{
 	#if 2 == PACKER_UNPACKER_TYPE
 		//we don't have fixed_length_packer, so use packer instead, but need to pack msgs with native manner.
-		return post_native_msg(msg.data(), msg.size());
+		return send_native_msg(msg.data(), msg.size(), true);
 	#else
-		return post_msg(msg.data(), msg.size());
+		return send_msg(msg.data(), msg.size(), true);
 	#endif
 	}
 #endif

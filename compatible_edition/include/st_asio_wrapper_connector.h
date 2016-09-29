@@ -37,10 +37,10 @@ protected:
 	typedef st_tcp_socket_base<Socket, Packer, Unpacker> super;
 
 public:
-	static const unsigned char TIMER_BEGIN = super::TIMER_END;
-	static const unsigned char TIMER_CONNECT = TIMER_BEGIN;
-	static const unsigned char TIMER_ASYNC_SHUTDOWN = TIMER_BEGIN + 1;
-	static const unsigned char TIMER_END = TIMER_BEGIN + 10;
+	static const st_timer::tid TIMER_BEGIN = super::TIMER_END;
+	static const st_timer::tid TIMER_CONNECT = TIMER_BEGIN;
+	static const st_timer::tid TIMER_ASYNC_SHUTDOWN = TIMER_BEGIN + 1;
+	static const st_timer::tid TIMER_END = TIMER_BEGIN + 10;
 
 	st_connector_base(boost::asio::io_service& io_service_) : super(io_service_), connected(false), reconnecting(true)
 		{set_server_addr(ST_ASIO_SERVER_PORT, ST_ASIO_SERVER_IP);}
@@ -175,7 +175,7 @@ protected:
 	}
 
 private:
-	bool reconnect_handler(unsigned char id)
+	bool reconnect_handler(st_timer::tid id)
 	{
 		assert(TIMER_CONNECT == id);
 
@@ -183,7 +183,7 @@ private:
 		return false;
 	}
 
-	bool async_shutdown_handler(unsigned char id, size_t loop_num)
+	bool async_shutdown_handler(st_timer::tid id, size_t loop_num)
 	{
 		assert(TIMER_ASYNC_SHUTDOWN == id);
 

@@ -25,9 +25,9 @@ protected:
 	typedef st_tcp_socket_base<Socket, Packer, Unpacker> super;
 
 public:
-	static const unsigned char TIMER_BEGIN = super::TIMER_END;
-	static const unsigned char TIMER_ASYNC_SHUTDOWN = TIMER_BEGIN;
-	static const unsigned char TIMER_END = TIMER_BEGIN + 10;
+	static const st_timer::tid TIMER_BEGIN = super::TIMER_END;
+	static const st_timer::tid TIMER_ASYNC_SHUTDOWN = TIMER_BEGIN;
+	static const st_timer::tid TIMER_END = TIMER_BEGIN + 10;
 
 	st_server_socket_base(Server& server_) : super(server_.get_service_pump()), server(server_) {}
 	template<typename Arg>
@@ -103,7 +103,7 @@ protected:
 	}
 
 private:
-	bool async_shutdown_handler(unsigned char id, size_t loop_num)
+	bool async_shutdown_handler(st_timer::tid id, size_t loop_num)
 	{
 		assert(TIMER_ASYNC_SHUTDOWN == id);
 

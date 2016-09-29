@@ -28,9 +28,9 @@ public:
 
 protected:
 #ifndef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
-	virtual bool on_msg(out_msg_type& msg) {return direct_post_msg(msg);}
+	virtual bool on_msg(out_msg_type& msg) {return direct_send_msg(msg, true);}
 #endif
-	virtual bool on_msg_handle(out_msg_type& msg, bool link_down) {return direct_post_msg(msg);}
+	virtual bool on_msg_handle(out_msg_type& msg, bool link_down) {return direct_send_msg(msg, true);}
 };
 
 class echo_server : public st_server_base<echo_socket>

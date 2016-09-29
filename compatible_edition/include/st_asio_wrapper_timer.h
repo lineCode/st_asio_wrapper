@@ -48,31 +48,27 @@ protected:
 	typedef boost::asio::deadline_timer timer_type;
 #endif
 
+public:
+	typedef unsigned char tid;
 	struct timer_info
 	{
 		enum timer_status {TIMER_OK, TIMER_CANCELED};
 
-		unsigned char id;
+		tid id;
 		timer_status status;
 		size_t milliseconds;
-		boost::function<bool (unsigned char)> call_back;
+		boost::function<bool (tid)> call_back;
 		boost::shared_ptr<timer_type> timer;
 
 		bool operator <(const timer_info& other) const {return id < other.id;}
 	};
-
-	static const unsigned char TIMER_END = 0; //user timer's id must begin from parent class' TIMER_END
-
-	st_timer(boost::asio::io_service& _io_service_) : st_object(_io_service_) {}
-	virtual ~st_timer() {}
-
-public:
+	
 	typedef timer_info object_type;
 	typedef const object_type object_ctype;
 	typedef boost::container::set<object_type> container_type;
 
 	//after this call, call_back cannot be used again, please note.
-	void update_timer_info(unsigned char id, size_t milliseconds, boost::function<bool(unsigned char)>& call_back, bool start = false)
+	void update_timer_info(tid id, size_t milliseconds, boost::function<bool(tid)>& call_back, bool start = false)
 	{
 		object_type ti = {id};
 
@@ -98,15 +94,15 @@ public:
 		if (start)
 			start_timer(*iter);
 	}
-	void update_timer_info(unsigned char id, size_t milliseconds, const boost::function<bool (unsigned char)>& call_back, bool start = false)
+	void update_timer_info(tid id, size_t milliseconds, const boost::function<bool (tid)>& call_back, bool start = false)
 		{BOOST_AUTO(tmp_call_back, call_back); update_timer_info(id, milliseconds, tmp_call_back, start);}
 
 	//after this call, call_back cannot be used again, please note.
-	void set_timer(unsigned char id, size_t milliseconds, boost::function<bool(unsigned char)>& call_back) {update_timer_info(id, milliseconds, call_back, true);}
-	void set_timer(unsigned char id, size_t milliseconds, const boost::function<bool(unsigned char)>& call_back)
+	void set_timer(tid id, size_t milliseconds, boost::function<bool(tid)>& call_back) {update_timer_info(id, milliseconds, call_back, true);}
+	void set_timer(tid id, size_t milliseconds, const boost::function<bool(tid)>& call_back)
 		{BOOST_AUTO(tmp_call_back, call_back); update_timer_info(id, milliseconds, tmp_call_back, true);}
 
-	object_type find_timer(unsigned char id)
+	object_type find_timer(tid id)
 	{
 		object_type ti = {id, object_type::TIMER_CANCELED, 0, NULL};
 
@@ -118,7 +114,7 @@ public:
 			return ti;
 	}
 
-	bool start_timer(unsigned char id)
+	bool start_timer(tid id)
 	{
 		object_type ti = {id};
 
@@ -132,7 +128,7 @@ public:
 		return true;
 	}
 
-	void stop_timer(unsigned char id)
+	void stop_timer(tid id)
 	{
 		object_type ti = {id};
 
@@ -151,6 +147,10 @@ public:
 	void stop_all_timer() {do_something_to_all(boost::bind((void (st_timer::*) (object_type&)) &st_timer::stop_timer, this, _1));}
 
 protected:
+	static const tid TIMER_END = 0; //user timer's id must begin from parent class' TIMER_END
+
+	st_timer(boost::asio::io_service& _io_service_) : st_object(_io_service_) {}
+
 	void reset() {st_object::reset();}
 
 	void start_timer(object_ctype& ti)

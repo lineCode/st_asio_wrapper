@@ -15,7 +15,7 @@
 //configuration
 
 //use the following macro to control the type of packer and unpacker
-#define PACKER_UNPACKER_TYPE	0
+#define PACKER_UNPACKER_TYPE	1
 //0-default packer and unpacker, head(length) + body
 //1-default replaceable_packer and replaceable_unpacker, head(length) + body
 //2-fixed length unpacker
