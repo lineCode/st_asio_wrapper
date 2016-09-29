@@ -167,11 +167,9 @@ protected:
 	typedef boost::container::list<out_msg> out_container_type;
 
 	static const tid TIMER_BEGIN = st_timer::TIMER_END;
-	static const tid TIMER_RECV_BUFFER_CHECK = TIMER_BEGIN;
-	static const tid TIMER_DISPATCH_MSG = TIMER_BEGIN + 1;
-	static const tid TIMER_SEND_BUFFER_CHECK = TIMER_BEGIN + 2;
-	static const tid TIMER_RE_DISPATCH_MSG = TIMER_BEGIN + 3;
-	static const tid TIMER_DELAY_CLOSE = TIMER_BEGIN + 4;
+	static const tid TIMER_DISPATCH_MSG = TIMER_BEGIN;
+	static const tid TIMER_RE_DISPATCH_MSG = TIMER_BEGIN + 1;
+	static const tid TIMER_DELAY_CLOSE = TIMER_BEGIN + 2;
 	static const tid TIMER_END = TIMER_BEGIN + 10;
 
 	st_socket(boost::asio::io_service& io_service_) : st_timer(io_service_), _id(-1), next_layer_(io_service_), packer_(boost::make_shared<Packer>()), started_(false) {reset_state();}
@@ -191,9 +189,8 @@ protected:
 	{
 		packer_->reset_state();
 
-		send_buffer_overflow = sending = false;
-		recv_buffer_overflow = dispatching = false;
-		suspend_send_msg_ = suspend_dispatch_msg_ = false;
+		sending = suspend_send_msg_ = false;
+		dispatching = suspend_dispatch_msg_ = false;
 #ifndef ST_ASIO_ENHANCED_STABILITY
 		closing = false;
 #endif
@@ -204,9 +201,9 @@ protected:
 	{
 		send_msg_buffer.clear();
 		recv_msg_buffer.clear();
-		last_dispatch_msg.clear();
-
 		temp_msg_buffer.clear();
+
+		last_dispatch_msg.clear();
 	}
 
 public:
@@ -358,15 +355,12 @@ protected:
 	//call this in recv_handler (in subclasses) only
 	void dispatch_msg()
 	{
+		bool overflow = false;
 #ifndef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
 		if (!temp_msg_buffer.empty())
 		{
-			if (suspend_dispatch_msg_ || send_buffer_overflow)
-			{
-				recv_idle_begin_time = statistic::local_time();
-				set_timer(TIMER_DISPATCH_MSG, 50, boost::bind(&st_socket::timer_handler, this, _1));
-				return;
-			}
+			if (suspend_dispatch_msg_ || !is_send_buffer_available())
+				overflow = true;
 			else
 			{
 				BOOST_AUTO(begin_time, statistic::local_time());
@@ -381,28 +375,26 @@ protected:
 			}
 		}
 #endif
-		if (!temp_msg_buffer.empty())
+		if (!overflow)
 		{
 			boost::unique_lock<boost::shared_mutex> lock(recv_msg_buffer_mutex);
 			recv_msg_buffer.splice(recv_msg_buffer.end(), temp_msg_buffer);
-			if (!recv_buffer_overflow && !is_send_buffer_available())
-			{
-				recv_buffer_overflow = true;
-				recv_idle_begin_time = statistic::local_time();
-				set_timer(TIMER_RECV_BUFFER_CHECK, 50, boost::bind(&st_socket::timer_handler, this, _1));
-				unified_out::warning_out("receiving buffer overflow, will suspend msg receiving.");
-				return;
-			}
-
+			overflow = recv_msg_buffer.size() > ST_ASIO_MAX_MSG_NUM;
 			do_dispatch_msg(false);
 		}
 
-		do_recv_msg(); //receive msg sequentially, which means second receiving only after first receiving success
+		if (!overflow)
+			do_recv_msg(); //receive msg sequentially, which means second receiving only after first receiving success
+		else
+		{
+			recv_idle_begin_time = statistic::local_time();
+			set_timer(TIMER_DISPATCH_MSG, 50, boost::bind(&st_socket::timer_handler, this, _1));
+		}
 	}
 
 	void do_dispatch_msg(bool need_lock)
 	{
-		if (suspend_dispatch_msg_ || send_buffer_overflow)
+		if (suspend_dispatch_msg_ || !is_send_buffer_available())
 			return;
 
 		boost::unique_lock<boost::shared_mutex> lock(recv_msg_buffer_mutex, boost::defer_lock);
@@ -451,13 +443,6 @@ protected:
 			send_msg_buffer.resize(send_msg_buffer.size() + 1);
 			send_msg_buffer.back().swap(msg);
 			do_send_msg();
-
-			if (!send_buffer_overflow && !is_send_buffer_available())
-			{
-				send_buffer_overflow = true;
-				set_timer(TIMER_SEND_BUFFER_CHECK, 50, boost::bind(&st_socket::timer_handler, this, _1));
-				unified_out::warning_out("sending buffer overflow, will suspend msg dispatching.");
-			}
 		}
 
 		return true;
@@ -468,29 +453,10 @@ private:
 	{
 		switch (id)
 		{
-		case TIMER_RECV_BUFFER_CHECK:
-			{
-				boost::unique_lock<boost::shared_mutex> lock(recv_msg_buffer_mutex);
-				if (recv_msg_buffer.size() >= ST_ASIO_MAX_MSG_NUM)
-					return true; //continue this timer
-
-				recv_buffer_overflow = false;
-				do_dispatch_msg(false);
-				unified_out::warning_out("receiving buffer available, will resume msg receiving.");
-			}
 		case TIMER_DISPATCH_MSG:
 			stat.recv_idle_sum += statistic::local_time() - recv_idle_begin_time;
 			dispatch_msg();
 			break;
-		case TIMER_SEND_BUFFER_CHECK:
-			{
-				boost::unique_lock<boost::shared_mutex> lock(send_msg_buffer_mutex);
-				if (!is_send_buffer_available())
-					return true; //continue this timer
-
-				send_buffer_overflow = false;
-				unified_out::warning_out("sending buffer available, will resume msg dispatching.");
-			}
 		case TIMER_RE_DISPATCH_MSG: //re-dispatch
 			do_dispatch_msg(true);
 			break;
@@ -539,24 +505,21 @@ private:
 protected:
 	boost::uint_fast64_t _id;
 	Socket next_layer_;
+
+	out_msg last_dispatch_msg;
 	boost::shared_ptr<i_packer<typename Packer::msg_type> > packer_;
 
 	in_container_type send_msg_buffer;
-	bool send_buffer_overflow, sending;
-	boost::shared_mutex send_msg_buffer_mutex;
-
-	out_container_type recv_msg_buffer;
-	bool recv_buffer_overflow, dispatching;
-	out_msg last_dispatch_msg;
-	boost::shared_mutex recv_msg_buffer_mutex;
-
-	out_container_type temp_msg_buffer;
+	out_container_type recv_msg_buffer, temp_msg_buffer;
 	//st_socket will invoke dispatch_msg() when got some msgs. if these msgs can't be pushed into recv_msg_buffer because of:
 	// 1. msg dispatching suspended;
-	// 2. send_msg_buffer overflow.
+	// 2. post_msg_buffer not empty.
 	//st_socket will delay 50 milliseconds(non-blocking) to invoke dispatch_msg() again, and now, as you known, temp_msg_buffer is used to hold these msgs temporarily.
+	boost::shared_mutex send_msg_buffer_mutex;
+	boost::shared_mutex recv_msg_buffer_mutex;
 
-	bool suspend_send_msg_, suspend_dispatch_msg_;
+	bool sending, suspend_send_msg_;
+	bool dispatching, suspend_dispatch_msg_;
 #ifndef ST_ASIO_ENHANCED_STABILITY
 	bool closing;
 #endif

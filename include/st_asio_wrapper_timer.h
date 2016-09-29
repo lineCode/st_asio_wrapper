@@ -36,7 +36,7 @@ namespace st_asio_wrapper
 //different st_timer, on_timer is always called concurrently
 class st_timer : public st_object
 {
-protected:
+public:
 #if defined(ST_ASIO_USE_STEADY_TIMER) || defined(ST_ASIO_USE_SYSTEM_TIMER)
 	#ifdef BOOST_ASIO_HAS_STD_CHRONO
 	typedef std::chrono::milliseconds milliseconds;
@@ -54,30 +54,29 @@ protected:
 	typedef boost::asio::deadline_timer timer_type;
 #endif
 
+	typedef unsigned char tid;
+	static const tid TIMER_END = 0; //user timer's id must begin from parent class' TIMER_END
+
 	struct timer_info
 	{
 		enum timer_status {TIMER_OK, TIMER_CANCELED};
 
-		unsigned char id;
+		tid id;
 		timer_status status;
 		size_t milliseconds;
-		std::function<bool(unsigned char)> call_back;
+		std::function<bool(tid)> call_back;
 		boost::shared_ptr<timer_type> timer;
 
 		bool operator <(const timer_info& other) const {return id < other.id;}
 	};
 
-	static const unsigned char TIMER_END = 0; //user timer's id must begin from parent class' TIMER_END
-
-	st_timer(boost::asio::io_service& _io_service_) : st_object(_io_service_) {}
-	virtual ~st_timer() {}
-
-public:
 	typedef timer_info object_type;
 	typedef const object_type object_ctype;
 	typedef boost::container::set<object_type> container_type;
 
-	void update_timer_info(unsigned char id, size_t milliseconds, std::function<bool(unsigned char)>&& call_back, bool start = false)
+	st_timer(boost::asio::io_service& _io_service_) : st_object(_io_service_) {}
+
+	void update_timer_info(tid id, size_t milliseconds, std::function<bool(tid)>&& call_back, bool start = false)
 	{
 		object_type ti = {id};
 
@@ -103,13 +102,13 @@ public:
 		if (start)
 			start_timer(*iter);
 	}
-	void update_timer_info(unsigned char id, size_t milliseconds, const std::function<bool(unsigned char)>& call_back, bool start = false)
-		{update_timer_info(id, milliseconds, std::function<bool(unsigned char)>(call_back), start);}
+	void update_timer_info(tid id, size_t milliseconds, const std::function<bool(tid)>& call_back, bool start = false)
+		{update_timer_info(id, milliseconds, std::function<bool(tid)>(call_back), start);}
 
-	void set_timer(unsigned char id, size_t milliseconds, std::function<bool(unsigned char)>&& call_back) {update_timer_info(id, milliseconds, std::move(call_back), true);}
-	void set_timer(unsigned char id, size_t milliseconds, const std::function<bool(unsigned char)>& call_back) {update_timer_info(id, milliseconds, call_back, true);}
+	void set_timer(tid id, size_t milliseconds, std::function<bool(tid)>&& call_back) {update_timer_info(id, milliseconds, std::move(call_back), true);}
+	void set_timer(tid id, size_t milliseconds, const std::function<bool(tid)>& call_back) {update_timer_info(id, milliseconds, call_back, true);}
 
-	object_type find_timer(unsigned char id)
+	object_type find_timer(tid id)
 	{
 		object_type ti = {id, object_type::TIMER_CANCELED, 0};
 
@@ -121,7 +120,7 @@ public:
 			return ti;
 	}
 
-	bool start_timer(unsigned char id)
+	bool start_timer(tid id)
 	{
 		object_type ti = {id};
 
@@ -135,7 +134,7 @@ public:
 		return true;
 	}
 
-	void stop_timer(unsigned char id)
+	void stop_timer(tid id)
 	{
 		object_type ti = {id};
 

@@ -78,7 +78,7 @@ typedef st_atomic<boost::uint_fast64_t> st_atomic_uint_fast64;
 #endif
 
 template<typename Object>
-class st_object_pool : public st_service_pump::i_service, public st_timer
+class st_object_pool : public st_service_pump::i_service, protected st_timer
 {
 public:
 	typedef boost::shared_ptr<Object> object_type;

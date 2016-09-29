@@ -77,7 +77,7 @@ typedef st_atomic<uint_fast64_t> st_atomic_uint_fast64;
 #endif
 
 template<typename Object>
-class st_object_pool : public st_service_pump::i_service, public st_timer
+class st_object_pool : public st_service_pump::i_service, protected st_timer
 {
 public:
 	typedef boost::shared_ptr<Object> object_type;
@@ -101,10 +101,10 @@ protected:
 	typedef boost::unordered::unordered_set<object_type, st_object_hasher, st_object_equal> container_type;
 
 protected:
-	static const unsigned char TIMER_BEGIN = st_timer::TIMER_END;
-	static const unsigned char TIMER_FREE_SOCKET = TIMER_BEGIN;
-	static const unsigned char TIMER_CLEAR_SOCKET = TIMER_BEGIN + 1;
-	static const unsigned char TIMER_END = TIMER_BEGIN + 10;
+	static const st_timer::tid TIMER_BEGIN = st_timer::TIMER_END;
+	static const st_timer::tid TIMER_FREE_SOCKET = TIMER_BEGIN;
+	static const st_timer::tid TIMER_CLEAR_SOCKET = TIMER_BEGIN + 1;
+	static const st_timer::tid TIMER_END = TIMER_BEGIN + 10;
 
 	st_object_pool(st_service_pump& service_pump_) : i_service(service_pump_), st_timer(service_pump_), cur_id(-1), max_size_(ST_ASIO_MAX_OBJECT_NUM) {}
 

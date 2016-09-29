@@ -36,7 +36,7 @@ namespace st_asio_wrapper
 //different st_timer, on_timer is always called concurrently
 class st_timer : public st_object
 {
-protected:
+public:
 #ifdef ST_ASIO_USE_STEADY_TIMER
 	typedef boost::chrono::milliseconds milliseconds;
 	typedef boost::asio::steady_timer timer_type;
@@ -48,8 +48,9 @@ protected:
 	typedef boost::asio::deadline_timer timer_type;
 #endif
 
-public:
 	typedef unsigned char tid;
+	static const tid TIMER_END = 0; //user timer's id must begin from parent class' TIMER_END
+
 	struct timer_info
 	{
 		enum timer_status {TIMER_OK, TIMER_CANCELED};
@@ -62,10 +63,12 @@ public:
 
 		bool operator <(const timer_info& other) const {return id < other.id;}
 	};
-	
+
 	typedef timer_info object_type;
 	typedef const object_type object_ctype;
 	typedef boost::container::set<object_type> container_type;
+
+	st_timer(boost::asio::io_service& _io_service_) : st_object(_io_service_) {}
 
 	//after this call, call_back cannot be used again, please note.
 	void update_timer_info(tid id, size_t milliseconds, boost::function<bool(tid)>& call_back, bool start = false)
@@ -95,12 +98,11 @@ public:
 			start_timer(*iter);
 	}
 	void update_timer_info(tid id, size_t milliseconds, const boost::function<bool (tid)>& call_back, bool start = false)
-		{BOOST_AUTO(tmp_call_back, call_back); update_timer_info(id, milliseconds, tmp_call_back, start);}
+		{BOOST_AUTO(unused, call_back); update_timer_info(id, milliseconds, unused, start);}
 
 	//after this call, call_back cannot be used again, please note.
 	void set_timer(tid id, size_t milliseconds, boost::function<bool(tid)>& call_back) {update_timer_info(id, milliseconds, call_back, true);}
-	void set_timer(tid id, size_t milliseconds, const boost::function<bool(tid)>& call_back)
-		{BOOST_AUTO(tmp_call_back, call_back); update_timer_info(id, milliseconds, tmp_call_back, true);}
+	void set_timer(tid id, size_t milliseconds, const boost::function<bool(tid)>& call_back) {update_timer_info(id, milliseconds, call_back, true);}
 
 	object_type find_timer(tid id)
 	{
@@ -147,10 +149,6 @@ public:
 	void stop_all_timer() {do_something_to_all(boost::bind((void (st_timer::*) (object_type&)) &st_timer::stop_timer, this, _1));}
 
 protected:
-	static const tid TIMER_END = 0; //user timer's id must begin from parent class' TIMER_END
-
-	st_timer(boost::asio::io_service& _io_service_) : st_object(_io_service_) {}
-
 	void reset() {st_object::reset();}
 
 	void start_timer(object_ctype& ti)

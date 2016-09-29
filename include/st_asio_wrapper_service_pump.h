@@ -13,8 +13,6 @@
 #ifndef ST_ASIO_WRAPPER_SERVICE_PUMP_H_
 #define ST_ASIO_WRAPPER_SERVICE_PUMP_H_
 
-#include <boost/container/list.hpp>
-
 #include "st_asio_wrapper_base.h"
 
 //IO thread number

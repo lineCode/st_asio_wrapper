@@ -72,9 +72,6 @@ public:
 	//success at here just means put the msg into st_tcp_socket_base's send buffer
 	TCP_SAFE_SEND_MSG(safe_send_msg, send_msg)
 	TCP_SAFE_SEND_MSG(safe_send_native_msg, send_native_msg)
-	//like safe_send_msg and safe_send_native_msg, but non-block
-	TCP_POST_MSG(post_msg, false)
-	TCP_POST_MSG(post_native_msg, true)
 	//msg sending interface
 	///////////////////////////////////////////////////
 

@@ -106,9 +106,6 @@ public:
 	//success at here just means put the msg into st_udp_socket's send buffer
 	UDP_SAFE_SEND_MSG(safe_send_msg, send_msg)
 	UDP_SAFE_SEND_MSG(safe_send_native_msg, send_native_msg)
-	//like safe_send_msg and safe_send_native_msg, but non-block
-	UDP_POST_MSG(post_msg, false)
-	UDP_POST_MSG(post_native_msg, true)
 	//msg sending interface
 	///////////////////////////////////////////////////
 

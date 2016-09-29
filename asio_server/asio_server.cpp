@@ -90,9 +90,9 @@ protected:
 	{
 	#if 2 == PACKER_UNPACKER_TYPE
 		//we don't have fixed_length_packer, so use packer instead, but need to pack msgs with native manner.
-		return post_native_msg(msg.data(), msg.size());
+		return send_native_msg(msg.data(), msg.size(), true);
 	#else
-		return post_msg(msg.data(), msg.size());
+		return send_msg(msg.data(), msg.size(), true);
 	#endif
 	}
 #endif

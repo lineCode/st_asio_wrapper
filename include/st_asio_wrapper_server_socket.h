@@ -25,9 +25,9 @@ protected:
 	typedef st_tcp_socket_base<Socket, Packer, Unpacker> super;
 
 public:
-	static const unsigned char TIMER_BEGIN = super::TIMER_END;
-	static const unsigned char TIMER_ASYNC_SHUTDOWN = TIMER_BEGIN;
-	static const unsigned char TIMER_END = TIMER_BEGIN + 10;
+	static const st_timer::tid TIMER_BEGIN = super::TIMER_END;
+	static const st_timer::tid TIMER_ASYNC_SHUTDOWN = TIMER_BEGIN;
+	static const st_timer::tid TIMER_END = TIMER_BEGIN + 10;
 
 	st_server_socket_base(Server& server_) : super(server_.get_service_pump()), server(server_) {}
 	template<typename Arg>
@@ -57,7 +57,7 @@ public:
 			show_info("server link:", "being shut down gracefully.");
 
 		if (super::graceful_shutdown(sync))
-			ST_THIS set_timer(TIMER_ASYNC_SHUTDOWN, 10, [this](unsigned char id)->bool {return ST_THIS async_shutdown_handler(id, ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION * 100);});
+			ST_THIS set_timer(TIMER_ASYNC_SHUTDOWN, 10, [this](st_timer::tid id)->bool {return ST_THIS async_shutdown_handler(id, ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION * 100);});
 	}
 
 	void show_info(const char* head, const char* tail) const
@@ -103,7 +103,7 @@ protected:
 	}
 
 private:
-	bool async_shutdown_handler(unsigned char id, size_t loop_num)
+	bool async_shutdown_handler(st_timer::tid id, size_t loop_num)
 	{
 		assert(TIMER_ASYNC_SHUTDOWN == id);
 
@@ -112,7 +112,7 @@ private:
 			--loop_num;
 			if (loop_num > 0)
 			{
-				ST_THIS update_timer_info(id, 10, [loop_num, this](unsigned char id)->bool {return ST_THIS async_shutdown_handler(id, loop_num);});
+				ST_THIS update_timer_info(id, 10, [loop_num, this](st_timer::tid id)->bool {return ST_THIS async_shutdown_handler(id, loop_num);});
 				return true;
 			}
 			else

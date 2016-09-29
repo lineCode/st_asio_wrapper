@@ -373,14 +373,6 @@ bool FUNNAME(const boost::asio::ip::udp::endpoint& peer_addr, const char* const 
 } \
 UDP_SEND_MSG_CALL_SWITCH(FUNNAME, bool)
 
-#define UDP_POST_MSG(FUNNAME, NATIVE) \
-bool FUNNAME(const boost::asio::ip::udp::endpoint& peer_addr, const char* const pstr[], const size_t len[], size_t num, bool can_overflow = false) \
-{ \
-	in_msg_type msg(peer_addr); \
-	return ST_THIS packer_->pack_msg(msg, pstr, len, num, NATIVE) ? ST_THIS direct_post_msg(msg, can_overflow) : false; \
-} \
-UDP_SEND_MSG_CALL_SWITCH(FUNNAME, bool)
-
 //guarantee send msg successfully even if can_overflow equal to false, success at here just means putting the msg into st_udp_socket's send buffer successfully
 //if can_overflow equal to false and the buffer is not available, will wait until it becomes available
 #define UDP_SAFE_SEND_MSG(FUNNAME, SEND_FUNNAME) \
