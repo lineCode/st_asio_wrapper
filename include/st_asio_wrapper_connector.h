@@ -174,7 +174,7 @@ protected:
 	}
 
 private:
-	bool async_shutdown_handler(unsigned char id, size_t loop_num)
+	bool async_shutdown_handler(st_timer::tid id, size_t loop_num)
 	{
 		assert(TIMER_ASYNC_SHUTDOWN == id);
 

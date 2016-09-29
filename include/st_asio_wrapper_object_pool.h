@@ -101,20 +101,20 @@ protected:
 	typedef boost::unordered::unordered_set<object_type, st_object_hasher, st_object_equal> container_type;
 
 protected:
-	static const st_timer::tid TIMER_BEGIN = st_timer::TIMER_END;
-	static const st_timer::tid TIMER_FREE_SOCKET = TIMER_BEGIN;
-	static const st_timer::tid TIMER_CLEAR_SOCKET = TIMER_BEGIN + 1;
-	static const st_timer::tid TIMER_END = TIMER_BEGIN + 10;
+	static const tid TIMER_BEGIN = st_timer::TIMER_END;
+	static const tid TIMER_FREE_SOCKET = TIMER_BEGIN;
+	static const tid TIMER_CLEAR_SOCKET = TIMER_BEGIN + 1;
+	static const tid TIMER_END = TIMER_BEGIN + 10;
 
 	st_object_pool(st_service_pump& service_pump_) : i_service(service_pump_), st_timer(service_pump_), cur_id(-1), max_size_(ST_ASIO_MAX_OBJECT_NUM) {}
 
 	void start()
 	{
 #ifndef ST_ASIO_REUSE_OBJECT
-		set_timer(TIMER_FREE_SOCKET, 1000 * ST_ASIO_FREE_OBJECT_INTERVAL, [this](unsigned char id)->bool {ST_THIS free_object(); return true;});
+		set_timer(TIMER_FREE_SOCKET, 1000 * ST_ASIO_FREE_OBJECT_INTERVAL, [this](tid id)->bool {ST_THIS free_object(); return true;});
 #endif
 #ifdef ST_ASIO_CLEAR_OBJECT_INTERVAL
-		set_timer(TIMER_CLEAR_SOCKET, 1000 * ST_ASIO_CLEAR_OBJECT_INTERVAL, [this](unsigned char id)->bool {ST_THIS clear_obsoleted_object(); return true;});
+		set_timer(TIMER_CLEAR_SOCKET, 1000 * ST_ASIO_CLEAR_OBJECT_INTERVAL, [this](tid id)->bool {ST_THIS clear_obsoleted_object(); return true;});
 #endif
 	}
 

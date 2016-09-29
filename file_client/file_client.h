@@ -175,7 +175,7 @@ public:
 	void start()
 	{
 		begin_time.start();
-		set_timer(UPDATE_PROGRESS, 50, [this](unsigned char id)->bool {return ST_THIS update_progress_handler(id, -1);});
+		set_timer(UPDATE_PROGRESS, 50, [this](tid id)->bool {return ST_THIS update_progress_handler(id, -1);});
 	}
 
 	void stop(const std::string& file_name)
@@ -196,7 +196,7 @@ public:
 	}
 
 private:
-	bool update_progress_handler(unsigned char id, unsigned last_percent)
+	bool update_progress_handler(tid id, unsigned last_percent)
 	{
 		assert(UPDATE_PROGRESS == id);
 
@@ -209,7 +209,7 @@ private:
 				printf("\r%u%%", new_percent);
 				fflush(stdout);
 
-				ST_THIS update_timer_info(id, 50, [new_percent, this](unsigned char id)->bool {return ST_THIS update_progress_handler(id, new_percent);});
+				ST_THIS update_timer_info(id, 50, [new_percent, this](tid id)->bool {return ST_THIS update_progress_handler(id, new_percent);});
 			}
 		}
 

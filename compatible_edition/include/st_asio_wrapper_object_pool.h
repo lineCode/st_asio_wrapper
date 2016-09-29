@@ -102,10 +102,10 @@ protected:
 	typedef boost::unordered::unordered_set<object_type, st_object_hasher, st_object_equal> container_type;
 
 protected:
-	static const st_timer::tid TIMER_BEGIN = st_timer::TIMER_END;
-	static const st_timer::tid TIMER_FREE_SOCKET = TIMER_BEGIN;
-	static const st_timer::tid TIMER_CLEAR_SOCKET = TIMER_BEGIN + 1;
-	static const st_timer::tid TIMER_END = TIMER_BEGIN + 10;
+	static const tid TIMER_BEGIN = st_timer::TIMER_END;
+	static const tid TIMER_FREE_SOCKET = TIMER_BEGIN;
+	static const tid TIMER_CLEAR_SOCKET = TIMER_BEGIN + 1;
+	static const tid TIMER_END = TIMER_BEGIN + 10;
 
 	st_object_pool(st_service_pump& service_pump_) : i_service(service_pump_), st_timer(service_pump_), cur_id(-1), max_size_(ST_ASIO_MAX_OBJECT_NUM) {}
 
@@ -350,7 +350,7 @@ public:
 
 private:
 #ifndef ST_ASIO_REUSE_OBJECT
-	bool free_object_handler(st_timer::tid id)
+	bool free_object_handler(tid id)
 	{
 		assert(TIMER_FREE_SOCKET == id);
 
@@ -360,7 +360,7 @@ private:
 #endif
 
 #ifdef ST_ASIO_CLEAR_OBJECT_INTERVAL
-	bool clear_obsoleted_object_handler(st_timer::tid id)
+	bool clear_obsoleted_object_handler(tid id)
 	{
 		assert(TIMER_CLEAR_SOCKET == id);
 
