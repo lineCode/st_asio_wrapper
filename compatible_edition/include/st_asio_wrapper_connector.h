@@ -175,13 +175,7 @@ protected:
 	}
 
 private:
-	bool reconnect_handler(st_timer::tid id)
-	{
-		assert(TIMER_CONNECT == id);
-
-		do_start();
-		return false;
-	}
+	bool reconnect_handler(st_timer::tid id) {assert(TIMER_CONNECT == id); do_start(); return false;}
 
 	bool async_shutdown_handler(st_timer::tid id, size_t loop_num)
 	{

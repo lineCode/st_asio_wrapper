@@ -8,7 +8,7 @@
 //#define ST_ASIO_REUSE_OBJECT //use objects pool
 //#define ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER //force to use the msg recv buffer
 //#define ST_ASIO_CLEAR_OBJECT_INTERVAL	1
-//#define ST_ASIO_WANT_MSG_SEND_NOTIFY
+#define ST_ASIO_WANT_MSG_SEND_NOTIFY
 #define ST_ASIO_FULL_STATISTIC //full statistic will slightly impact efficiency.
 //configuration
 
@@ -23,6 +23,7 @@
 #define ST_ASIO_DEFAULT_PACKER replaceable_packer
 #define ST_ASIO_DEFAULT_UNPACKER replaceable_unpacker
 #elif 2 == PACKER_UNPACKER_TYPE
+#define ST_ASIO_DEFAULT_PACKER fixed_length_packer
 #define ST_ASIO_DEFAULT_UNPACKER fixed_length_unpacker
 #elif 3 == PACKER_UNPACKER_TYPE
 #define ST_ASIO_DEFAULT_PACKER prefix_suffix_packer
@@ -84,13 +85,7 @@ public:
 		memset(buff, msg_fill, msg_len);
 		memcpy(buff, &recv_index, sizeof(size_t)); //seq
 
-#if 2 == PACKER_UNPACKER_TYPE
-		//we don't have fixed_length_packer, so use packer instead, but need to pack msgs with native manner.
-		send_native_msg(buff, msg_len);
-#else
 		send_msg(buff, msg_len);
-#endif
-
 		delete[] buff;
 	}
 
@@ -112,23 +107,13 @@ protected:
 
 		auto pstr = inner_packer()->raw_data(msg);
 		auto msg_len = inner_packer()->raw_data_len(msg);
-#if 2 == PACKER_UNPACKER_TYPE
-		//we don't have fixed_length_packer, so use packer instead, but need to pack msgs with native manner.
-		std::advance(pstr, -ST_ASIO_HEAD_LEN);
-		msg_len += ST_ASIO_HEAD_LEN;
-#endif
 
 		size_t send_index;
 		memcpy(&send_index, pstr, sizeof(size_t));
 		++send_index;
 		memcpy(pstr, &send_index, sizeof(size_t)); //seq
 
-#if 2 == PACKER_UNPACKER_TYPE
-		//we don't have fixed_length_packer, so use packer instead, but need to pack msgs with native manner.
-		send_native_msg(pstr, msg_len);
-#else
 		send_msg(pstr, msg_len);
-#endif
 	}
 #endif
 
@@ -395,21 +380,11 @@ int main(int argc, const char* argv[])
 					switch (model)
 					{
 					case 0:
-#if 2 == PACKER_UNPACKER_TYPE
-						//we don't have fixed_length_packer, so use packer instead, but need to pack msgs with native manner.
-						client.safe_broadcast_native_msg(buff, msg_len);
-#else
 						client.safe_broadcast_msg(buff, msg_len);
-#endif
 						send_bytes += link_num * msg_len;
 						break;
 					case 1:
-#if 2 == PACKER_UNPACKER_TYPE
-						//we don't have fixed_length_packer, so use packer instead, but need to pack msgs with native manner.
-						client.safe_random_send_native_msg(buff, msg_len);
-#else
 						client.safe_random_send_msg(buff, msg_len);
-#endif
 						send_bytes += msg_len;
 						break;
 					default:

@@ -135,7 +135,7 @@ public:
 		uint_fast64_t recv_byte_sum; //include msgs in receiving buffer
 		stat_duration dispatch_dealy_sum; //from parse_msg(exclude msg unpacking) to on_msg_handle
 		stat_duration recv_idle_sum;
-		//during this duration, st_socket suspended msg reception because of receiving/sending buffer overflow
+		//during this duration, st_socket suspended msg reception (receiving buffer overflow or msg dispatching suspended)
 #ifndef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
 		stat_duration handle_time_1_sum; //on_msg consumed time, this indicate the efficiency of msg handling
 #endif
@@ -266,7 +266,6 @@ public:
 	//if you use can_overflow = true to invoke send_msg or send_native_msg, it will always succeed no matter whether the send buffer is available or not,
 	//this can exhaust all virtual memory, please pay special attentions.
 	bool is_send_buffer_available() const {return send_msg_buffer.size() < ST_ASIO_MAX_MSG_NUM;}
-	bool is_send_buffer_overflow() const {return send_msg_buffer.size() > ST_ASIO_MAX_MSG_NUM;}
 
 	//don't use the packer but insert into send buffer directly
 	bool direct_send_msg(const InMsgType& msg, bool can_overflow = false) {return direct_send_msg(InMsgType(msg), can_overflow);}
@@ -354,35 +353,32 @@ protected:
 	//call this in recv_handler (in subclasses) only
 	void dispatch_msg()
 	{
-		auto overflow = false;
+		decltype(temp_msg_buffer) temp_buffer;
+
 #ifndef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
-		if (!temp_msg_buffer.empty())
+		if (!temp_msg_buffer.empty() && !suspend_dispatch_msg_)
 		{
-			if (suspend_dispatch_msg_ || is_send_buffer_overflow())
-				overflow = true;
-			else
-			{
-				auto begin_time = statistic::local_time();
-				for (auto iter = std::begin(temp_msg_buffer); iter != std::end(temp_msg_buffer);)
-					if (on_msg(*iter))
-						temp_msg_buffer.erase(iter++);
-					else
-						++iter;
-				auto time_duration = statistic::local_time() - begin_time;
-				stat.handle_time_1_sum += time_duration;
-				stat.recv_idle_sum += time_duration;
-			}
+			auto begin_time = statistic::local_time();
+			for (auto iter = std::begin(temp_msg_buffer); !suspend_dispatch_msg_ && iter != std::end(temp_msg_buffer);)
+				if (on_msg(*iter))
+					temp_msg_buffer.erase(iter++);
+				else
+					temp_buffer.splice(std::end(temp_buffer), temp_msg_buffer, iter++);
+
+			stat.handle_time_1_sum += statistic::local_time() - begin_time;
 		}
+#else
+		temp_buffer.swap(temp_msg_buffer);
 #endif
-		if (!overflow)
+
+		if (!temp_buffer.empty())
 		{
 			boost::unique_lock<boost::shared_mutex> lock(recv_msg_buffer_mutex);
-			recv_msg_buffer.splice(std::end(recv_msg_buffer), temp_msg_buffer);
-			overflow = recv_msg_buffer.size() > ST_ASIO_MAX_MSG_NUM;
+			recv_msg_buffer.splice(std::end(recv_msg_buffer), temp_buffer);
 			do_dispatch_msg(false);
 		}
 
-		if (!overflow)
+		if (temp_msg_buffer.empty() && recv_msg_buffer.size() < ST_ASIO_MAX_MSG_NUM)
 			do_recv_msg(); //receive msg sequentially, which means second receiving only after first receiving success
 		else
 		{
@@ -393,7 +389,7 @@ protected:
 
 	void do_dispatch_msg(bool need_lock)
 	{
-		if (suspend_dispatch_msg_ || is_send_buffer_overflow())
+		if (suspend_dispatch_msg_)
 			return;
 
 		boost::unique_lock<boost::shared_mutex> lock(recv_msg_buffer_mutex, boost::defer_lock);

@@ -95,7 +95,7 @@ protected:
 		if (!re)
 		{
 			suspend_dispatch_msg(true); //very important
-			unified_out::warning_out("suspend msg dispatching.");
+			puts("suspend msg dispatching.");
 		}
 
 		return re;
@@ -109,7 +109,7 @@ protected:
 		if (re)
 		{
 			suspend_dispatch_msg(false); //very important
-			unified_out::warning_out("resume msg dispatching.");
+			puts("resume msg dispatching.");
 		}
 
 		return re;

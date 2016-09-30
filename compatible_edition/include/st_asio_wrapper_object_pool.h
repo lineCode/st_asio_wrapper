@@ -350,23 +350,11 @@ public:
 
 private:
 #ifndef ST_ASIO_REUSE_OBJECT
-	bool free_object_handler(tid id)
-	{
-		assert(TIMER_FREE_SOCKET == id);
-
-		free_object();
-		return true;
-	}
+	bool free_object_handler(tid id) {assert(TIMER_FREE_SOCKET == id); free_object(); return true;}
 #endif
 
 #ifdef ST_ASIO_CLEAR_OBJECT_INTERVAL
-	bool clear_obsoleted_object_handler(tid id)
-	{
-		assert(TIMER_CLEAR_SOCKET == id);
-
-		clear_obsoleted_object();
-		return true;
-	}
+	bool clear_obsoleted_object_handler(tid id) {assert(TIMER_CLEAR_SOCKET == id); clear_obsoleted_object(); return true;}
 #endif
 
 protected:

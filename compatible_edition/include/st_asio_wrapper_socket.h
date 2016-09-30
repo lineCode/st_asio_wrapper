@@ -367,8 +367,7 @@ protected:
 				else
 					temp_buffer.splice(temp_buffer.end(), temp_msg_buffer, iter++);
 
-			BOOST_AUTO(time_duration, statistic::local_time() - begin_time);
-			stat.handle_time_1_sum += time_duration;
+			stat.handle_time_1_sum += statistic::local_time() - begin_time;
 		}
 #else
 		temp_buffer.swap(temp_msg_buffer);

@@ -131,7 +131,7 @@ public:
 	virtual bool pack_msg(msg_type& msg, const char* const pstr[], const size_t len[], size_t num, bool native = false) {return packer::pack_msg(msg, pstr, len, num, true);}
 
 	virtual char* raw_data(msg_type& msg) const {return const_cast<char*>(msg.data());}
-	virtual const char* raw_data(msg_ctype& msg) const {return boost::next(msg.data());}
+	virtual const char* raw_data(msg_ctype& msg) const {return msg.data();}
 	virtual size_t raw_data_len(msg_ctype& msg) const {return msg.size();}
 };
 
