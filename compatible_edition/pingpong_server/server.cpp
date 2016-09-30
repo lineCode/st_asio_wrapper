@@ -21,16 +21,65 @@ using namespace st_asio_wrapper::ext;
 #define QUIT_COMMAND	"quit"
 #define LIST_STATUS		"status"
 
+//about congestion control
+//
+//in 1.3, congestion control has been removed (no post_msg nor post_native_msg anymore), this is because
+//without known the business (or logic), framework cannot always do congestion control properly.
+//now, users should take the responsibility to do congestion control, there're two ways:
+//
+//1. for receiver, if you cannot handle msgs timely, which means the bottleneck is in your business,
+//    you should open/close congestion control intermittently;
+//   for sender, send msgs in on_msg_send() or use sending buffer limitation (like safe_send_msg(..., false)),
+//    but must not in service threads, please note.
+//
+//2. for sender, if responses are available (like pingpong test), send msgs in on_msg()/on_msg_handle().
+//
+//pingpong_server chose method #1
+//BTW, if pingpong_client chose method #2, then pingpong_server can work properly without any congestion control,
+//which means pingpong_server can send msgs back with can_overflow parameter equal to true, and memory occupation
+//will be under control.
+
 class echo_socket : public st_server_socket
 {
 public:
 	echo_socket(i_server& server_) : st_server_socket(server_) {}
 
 protected:
+	//msg handling: send the original msg back(echo server)
 #ifndef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
-	virtual bool on_msg(out_msg_type& msg) {return direct_send_msg(msg, true);}
+	//this virtual function doesn't exists if ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER been defined
+	virtual bool on_msg(out_msg_type& msg)
+	{
+		bool re = direct_send_msg(msg);
+		if (!re)
+		{
+			//cannot handle (send it back) this msg timely, begin congestion control
+			//'msg' will be put into receiving buffer, and be dispatched in on_msg_handle() in the future
+			congestion_control(true); //very important
+			unified_out::warning_out("open congestion control.");
+		}
+
+		return re;
+	}
+
+	virtual bool on_msg_handle(out_msg_type& msg, bool link_down)
+	{
+		bool re = direct_send_msg(msg);
+		if (re)
+		{
+			//successfully handled the only one msg in receiving buffer, end congestion control
+			//subsequent msgs will be dispatched via on_msg() again.
+			congestion_control(false); //very important
+			unified_out::warning_out("close congestion control.");
+		}
+
+		return re;
+	}
+#else
+	//if we used receiving buffer, congestion control will become much simpler, like this:
+	virtual bool on_msg_handle(out_msg_type& msg, bool link_down) {return send_msg(msg.data(), msg.size());}
 #endif
-	virtual bool on_msg_handle(out_msg_type& msg, bool link_down) {return direct_send_msg(msg, true);}
+	//msg handling end
 };
 
 class echo_server : public st_server_base<echo_socket>
