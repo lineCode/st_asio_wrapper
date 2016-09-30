@@ -51,7 +51,7 @@ protected:
 	//this virtual function doesn't exists if ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER been defined
 	virtual bool on_msg(out_msg_type& msg)
 	{
-		auto re = direct_send_msg(msg);
+		auto re = direct_send_msg(std::move(msg));
 		if (!re)
 		{
 			//cannot handle (send it back) this msg timely, begin congestion control
@@ -65,7 +65,7 @@ protected:
 
 	virtual bool on_msg_handle(out_msg_type& msg, bool link_down)
 	{
-		auto re = direct_send_msg(msg);
+		auto re = direct_send_msg(std::move(msg));
 		if (re)
 		{
 			//successfully handled the only one msg in receiving buffer, end congestion control
@@ -78,7 +78,7 @@ protected:
 	}
 #else
 	//if we used receiving buffer, congestion control will become much simpler, like this:
-	virtual bool on_msg_handle(out_msg_type& msg, bool link_down) {return send_msg(msg.data(), msg.size());}
+	virtual bool on_msg_handle(out_msg_type& msg, bool link_down) {return direct_send_msg(std::move(msg));}
 #endif
 	//msg handling end
 };

@@ -105,7 +105,7 @@ protected:
 	//this virtual function doesn't exists if ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER been defined
 	virtual bool on_msg(out_msg_type& msg)
 	{
-		bool re = send_msg(msg.data(), msg.size());
+		auto re = send_msg(msg.data(), msg.size());
 		if (!re)
 		{
 			//cannot handle (send it back) this msg timely, begin congestion control
@@ -119,7 +119,7 @@ protected:
 
 	virtual bool on_msg_handle(out_msg_type& msg, bool link_down)
 	{
-		bool re = send_msg(msg.data(), msg.size());
+		auto re = send_msg(msg.data(), msg.size());
 		if (re)
 		{
 			//successfully handled the only one msg in receiving buffer, end congestion control

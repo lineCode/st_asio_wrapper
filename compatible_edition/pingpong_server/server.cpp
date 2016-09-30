@@ -78,7 +78,7 @@ protected:
 	}
 #else
 	//if we used receiving buffer, congestion control will become much simpler, like this:
-	virtual bool on_msg_handle(out_msg_type& msg, bool link_down) {return send_msg(msg.data(), msg.size());}
+	virtual bool on_msg_handle(out_msg_type& msg, bool link_down) {return direct_send_msg(msg);}
 #endif
 	//msg handling end
 };

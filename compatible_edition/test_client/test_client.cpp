@@ -248,7 +248,7 @@ int main(int argc, const char* argv[])
 
 	//method #1, create and add clients manually.
 	BOOST_AUTO(client_ptr, client.create_object());
-	//client_ptr->set_server_addr(port, ip); //we don't have to set server address at here, the following do_something_to_all will do it for me
+	//client_ptr->set_server_addr(port, ip); //we don't have to set server address at here, the following do_something_to_all will do it for us
 	//some other initializations according to your business
 	client.add_client(client_ptr, false);
 	client_ptr.reset(); //important, otherwise, st_object_pool will not be able to free or reuse this object.
