@@ -55,217 +55,218 @@
 
 namespace st_asio_wrapper
 {
-	class st_service_pump;
-	class st_timer;
-	class i_server
+
+class st_service_pump;
+class st_timer;
+class i_server
+{
+public:
+	virtual st_service_pump& get_service_pump() = 0;
+	virtual const st_service_pump& get_service_pump() const = 0;
+	virtual bool del_client(const boost::shared_ptr<st_timer>& client_ptr) = 0;
+};
+
+class i_buffer
+{
+public:
+	virtual ~i_buffer() {}
+
+	virtual bool empty() const = 0;
+	virtual size_t size() const = 0;
+	virtual const char* data() const = 0;
+};
+
+//convert '->' operation to '.' operation
+//user need to allocate object, and auto_buffer will free it
+template<typename T>
+class auto_buffer : public boost::noncopyable
+{
+public:
+	typedef T* buffer_type;
+	typedef const buffer_type buffer_ctype;
+
+	auto_buffer() : buffer(NULL) {}
+	auto_buffer(buffer_type _buffer) : buffer(_buffer) {}
+	~auto_buffer() {clear();}
+
+	buffer_type raw_buffer() const {return buffer;}
+	void raw_buffer(buffer_type _buffer) {buffer = _buffer;}
+
+	//the following five functions are needed by st_asio_wrapper
+	bool empty() const {return NULL == buffer || buffer->empty();}
+	size_t size() const {return NULL == buffer ? 0 : buffer->size();}
+	const char* data() const {return NULL == buffer ? NULL : buffer->data();}
+	void swap(auto_buffer& other) {std::swap(buffer, other.buffer);}
+	void clear() {delete buffer; buffer = NULL;}
+
+protected:
+	buffer_type buffer;
+};
+typedef auto_buffer<i_buffer> replaceable_buffer;
+//replaceable_packer and replaceable_unpacker used replaceable_buffer as their msg type, so they're replaceable,
+//shared_buffer<i_buffer> is available too.
+
+//convert '->' operation to '.' operation
+//user need to allocate object, and shared_buffer will free it
+template<typename T>
+class shared_buffer
+{
+public:
+	typedef boost::shared_ptr<T> buffer_type;
+	typedef const buffer_type buffer_ctype;
+
+	shared_buffer() {}
+	shared_buffer(buffer_type _buffer) : buffer(_buffer) {}
+	shared_buffer(const shared_buffer& other) : buffer(other.buffer) {}
+	const shared_buffer& operator=(const shared_buffer& other) {buffer = other.buffer; return *this;}
+	~shared_buffer() {clear();}
+
+	buffer_type raw_buffer() const {return buffer;}
+	void raw_buffer(buffer_ctype _buffer) {buffer = _buffer;}
+
+	//the following five functions are needed by st_asio_wrapper
+	bool empty() const {return !buffer || buffer->empty();}
+	size_t size() const {return !buffer ? 0 : buffer->size();}
+	const char* data() const {return !buffer ? NULL : buffer->data();}
+	void swap(shared_buffer& other) {buffer.swap(other.buffer);}
+	void clear() {buffer.reset();}
+
+protected:
+	buffer_type buffer;
+};
+//not like auto_buffer, shared_buffer is copyable, but auto_buffer is a bit more efficient.
+
+//packer concept
+template<typename MsgType>
+class i_packer
+{
+public:
+	typedef MsgType msg_type;
+	typedef const msg_type msg_ctype;
+
+protected:
+	virtual ~i_packer() {}
+
+public:
+	virtual void reset_state() {}
+	virtual bool pack_msg(msg_type& msg, const char* const pstr[], const size_t len[], size_t num, bool native = false) = 0;
+	virtual char* raw_data(msg_type& msg) const {return NULL;}
+	virtual const char* raw_data(msg_ctype& msg) const {return NULL;}
+	virtual size_t raw_data_len(msg_ctype& msg) const {return 0;}
+
+	bool pack_msg(msg_type& msg, const char* pstr, size_t len, bool native = false) {return pack_msg(msg, &pstr, &len, 1, native);}
+	bool pack_msg(msg_type& msg, const std::string& str, bool native = false) {return pack_msg(msg, str.data(), str.size(), native);}
+};
+//packer concept
+
+//just provide msg_type definition, you should not call any functions of it, but send msgs directly
+template<typename MsgType>
+class dummy_packer : public i_packer<MsgType>
+{
+public:
+	using typename i_packer<MsgType>::msg_type;
+	using typename i_packer<MsgType>::msg_ctype;
+
+	virtual bool pack_msg(msg_type& msg, const char* const pstr[], const size_t len[], size_t num, bool native = false) {assert(false); return false;}
+};
+
+//unpacker concept
+template<typename MsgType>
+class i_unpacker
+{
+public:
+	typedef MsgType msg_type;
+	typedef const msg_type msg_ctype;
+	typedef boost::container::list<msg_type> container_type;
+
+protected:
+	virtual ~i_unpacker() {}
+
+public:
+	virtual void reset_state() = 0;
+	virtual bool parse_msg(size_t bytes_transferred, container_type& msg_can) = 0;
+	virtual size_t completion_condition(const boost::system::error_code& ec, size_t bytes_transferred) = 0;
+	virtual boost::asio::mutable_buffers_1 prepare_next_recv() = 0;
+};
+
+template<typename MsgType>
+class udp_msg : public MsgType
+{
+public:
+	boost::asio::ip::udp::endpoint peer_addr;
+
+	udp_msg() {}
+	udp_msg(const boost::asio::ip::udp::endpoint& _peer_addr) : peer_addr(_peer_addr) {}
+
+	void swap(udp_msg& other) {std::swap(peer_addr, other.peer_addr); MsgType::swap(other);}
+	void set_addr(const boost::asio::ip::udp::endpoint& addr) {peer_addr = addr;}
+};
+
+template<typename MsgType>
+class i_udp_unpacker
+{
+public:
+	typedef MsgType msg_type;
+	typedef const msg_type msg_ctype;
+	typedef boost::container::list<udp_msg<msg_type> > container_type;
+
+protected:
+	virtual ~i_udp_unpacker() {}
+
+public:
+	virtual void reset_state() {}
+	virtual void parse_msg(msg_type& msg, size_t bytes_transferred) = 0;
+	virtual boost::asio::mutable_buffers_1 prepare_next_recv() = 0;
+};
+//unpacker concept
+
+//free functions, used to do something to any container(except map and multimap) optionally with any mutex
+template<typename _Can, typename _Mutex, typename _Predicate>
+void do_something_to_all(_Can& __can, _Mutex& __mutex, const _Predicate& __pred)
+{
+	boost::shared_lock<boost::shared_mutex> lock(__mutex);
+	for(BOOST_AUTO(iter, __can.begin()); iter != __can.end(); ++iter) __pred(*iter);
+}
+
+template<typename _Can, typename _Predicate>
+void do_something_to_all(_Can& __can, const _Predicate& __pred) {for(BOOST_AUTO(iter, __can.begin()); iter != __can.end(); ++iter) __pred(*iter);}
+
+template<typename _Can, typename _Mutex, typename _Predicate>
+void do_something_to_one(_Can& __can, _Mutex& __mutex, const _Predicate& __pred)
+{
+	boost::shared_lock<boost::shared_mutex> lock(__mutex);
+	for (BOOST_AUTO(iter, __can.begin()); iter != __can.end(); ++iter) if (__pred(*iter)) break;
+}
+
+template<typename _Can, typename _Predicate>
+void do_something_to_one(_Can& __can, const _Predicate& __pred) {for (BOOST_AUTO(iter, __can.begin()); iter != __can.end(); ++iter) if (__pred(*iter)) break;}
+
+template<typename _Can>
+bool splice_helper(_Can& dest_can, _Can& src_can, size_t max_size = ST_ASIO_MAX_MSG_NUM)
+{
+	size_t size = dest_can.size();
+	if (size < max_size) //dest_can can hold more items.
 	{
-	public:
-		virtual st_service_pump& get_service_pump() = 0;
-		virtual const st_service_pump& get_service_pump() const = 0;
-		virtual bool del_client(const boost::shared_ptr<st_timer>& client_ptr) = 0;
-	};
-
-	class i_buffer
-	{
-	public:
-		virtual ~i_buffer() {}
-
-		virtual bool empty() const = 0;
-		virtual size_t size() const = 0;
-		virtual const char* data() const = 0;
-	};
-
-	//convert '->' operation to '.' operation
-	//user need to allocate object, and auto_buffer will free it
-	template<typename T>
-	class auto_buffer : public boost::noncopyable
-	{
-	public:
-		typedef T* buffer_type;
-		typedef const buffer_type buffer_ctype;
-
-		auto_buffer() : buffer(NULL) {}
-		auto_buffer(buffer_type _buffer) : buffer(_buffer) {}
-		~auto_buffer() {clear();}
-
-		buffer_type raw_buffer() const {return buffer;}
-		void raw_buffer(buffer_type _buffer) {buffer = _buffer;}
-
-		//the following five functions are needed by st_asio_wrapper
-		bool empty() const {return NULL == buffer || buffer->empty();}
-		size_t size() const {return NULL == buffer ? 0 : buffer->size();}
-		const char* data() const {return NULL == buffer ? NULL : buffer->data();}
-		void swap(auto_buffer& other) {std::swap(buffer, other.buffer);}
-		void clear() {delete buffer; buffer = NULL;}
-
-	protected:
-		buffer_type buffer;
-	};
-	typedef auto_buffer<i_buffer> replaceable_buffer;
-	//replaceable_packer and replaceable_unpacker used replaceable_buffer as their msg type, so they're replaceable,
-	//shared_buffer<i_buffer> is available too.
-
-	//convert '->' operation to '.' operation
-	//user need to allocate object, and shared_buffer will free it
-	template<typename T>
-	class shared_buffer
-	{
-	public:
-		typedef boost::shared_ptr<T> buffer_type;
-		typedef const buffer_type buffer_ctype;
-
-		shared_buffer() {}
-		shared_buffer(buffer_type _buffer) : buffer(_buffer) {}
-		shared_buffer(const shared_buffer& other) : buffer(other.buffer) {}
-		const shared_buffer& operator=(const shared_buffer& other) {buffer = other.buffer; return *this;}
-		~shared_buffer() {clear();}
-
-		buffer_type raw_buffer() const {return buffer;}
-		void raw_buffer(buffer_ctype _buffer) {buffer = _buffer;}
-
-		//the following five functions are needed by st_asio_wrapper
-		bool empty() const {return !buffer || buffer->empty();}
-		size_t size() const {return !buffer ? 0 : buffer->size();}
-		const char* data() const {return !buffer ? NULL : buffer->data();}
-		void swap(shared_buffer& other) {buffer.swap(other.buffer);}
-		void clear() {buffer.reset();}
-
-	protected:
-		buffer_type buffer;
-	};
-	//not like auto_buffer, shared_buffer is copyable, but auto_buffer is a bit more efficient.
-
-	//packer concept
-	template<typename MsgType>
-	class i_packer
-	{
-	public:
-		typedef MsgType msg_type;
-		typedef const msg_type msg_ctype;
-
-	protected:
-		virtual ~i_packer() {}
-
-	public:
-		virtual void reset_state() {}
-		virtual bool pack_msg(msg_type& msg, const char* const pstr[], const size_t len[], size_t num, bool native = false) = 0;
-		virtual char* raw_data(msg_type& msg) const {return NULL;}
-		virtual const char* raw_data(msg_ctype& msg) const {return NULL;}
-		virtual size_t raw_data_len(msg_ctype& msg) const {return 0;}
-
-		bool pack_msg(msg_type& msg, const char* pstr, size_t len, bool native = false) {return pack_msg(msg, &pstr, &len, 1, native);}
-		bool pack_msg(msg_type& msg, const std::string& str, bool native = false) {return pack_msg(msg, str.data(), str.size(), native);}
-	};
-	//packer concept
-
-	//just provide msg_type definition, you should not call any functions of it, but send msgs directly
-	template<typename MsgType>
-	class dummy_packer : public i_packer<MsgType>
-	{
-	public:
-		using typename i_packer<MsgType>::msg_type;
-		using typename i_packer<MsgType>::msg_ctype;
-
-		virtual bool pack_msg(msg_type& msg, const char* const pstr[], const size_t len[], size_t num, bool native = false) {assert(false); return false;}
-	};
-
-	//unpacker concept
-	template<typename MsgType>
-	class i_unpacker
-	{
-	public:
-		typedef MsgType msg_type;
-		typedef const msg_type msg_ctype;
-		typedef boost::container::list<msg_type> container_type;
-
-	protected:
-		virtual ~i_unpacker() {}
-
-	public:
-		virtual void reset_state() = 0;
-		virtual bool parse_msg(size_t bytes_transferred, container_type& msg_can) = 0;
-		virtual size_t completion_condition(const boost::system::error_code& ec, size_t bytes_transferred) = 0;
-		virtual boost::asio::mutable_buffers_1 prepare_next_recv() = 0;
-	};
-
-	template<typename MsgType>
-	class udp_msg : public MsgType
-	{
-	public:
-		boost::asio::ip::udp::endpoint peer_addr;
-
-		udp_msg() {}
-		udp_msg(const boost::asio::ip::udp::endpoint& _peer_addr) : peer_addr(_peer_addr) {}
-
-		void swap(udp_msg& other) {std::swap(peer_addr, other.peer_addr); MsgType::swap(other);}
-		void set_addr(const boost::asio::ip::udp::endpoint& addr) {peer_addr = addr;}
-	};
-
-	template<typename MsgType>
-	class i_udp_unpacker
-	{
-	public:
-		typedef MsgType msg_type;
-		typedef const msg_type msg_ctype;
-		typedef boost::container::list<udp_msg<msg_type> > container_type;
-
-	protected:
-		virtual ~i_udp_unpacker() {}
-
-	public:
-		virtual void reset_state() {}
-		virtual void parse_msg(msg_type& msg, size_t bytes_transferred) = 0;
-		virtual boost::asio::mutable_buffers_1 prepare_next_recv() = 0;
-	};
-	//unpacker concept
-
-	//free functions, used to do something to any container(except map and multimap) optionally with any mutex
-	template<typename _Can, typename _Mutex, typename _Predicate>
-	void do_something_to_all(_Can& __can, _Mutex& __mutex, const _Predicate& __pred)
-	{
-		boost::shared_lock<boost::shared_mutex> lock(__mutex);
-		for(BOOST_AUTO(iter, __can.begin()); iter != __can.end(); ++iter) __pred(*iter);
-	}
-
-	template<typename _Can, typename _Predicate>
-	void do_something_to_all(_Can& __can, const _Predicate& __pred) {for(BOOST_AUTO(iter, __can.begin()); iter != __can.end(); ++iter) __pred(*iter);}
-
-	template<typename _Can, typename _Mutex, typename _Predicate>
-	void do_something_to_one(_Can& __can, _Mutex& __mutex, const _Predicate& __pred)
-	{
-		boost::shared_lock<boost::shared_mutex> lock(__mutex);
-		for (BOOST_AUTO(iter, __can.begin()); iter != __can.end(); ++iter) if (__pred(*iter)) break;
-	}
-
-	template<typename _Can, typename _Predicate>
-	void do_something_to_one(_Can& __can, const _Predicate& __pred) {for (BOOST_AUTO(iter, __can.begin()); iter != __can.end(); ++iter) if (__pred(*iter)) break;}
-
-	template<typename _Can>
-	bool splice_helper(_Can& dest_can, _Can& src_can, size_t max_size = ST_ASIO_MAX_MSG_NUM)
-	{
-		size_t size = dest_can.size();
-		if (size < max_size) //dest_can can hold more items.
+		size = max_size - size; //maximum items this time can handle
+		BOOST_AUTO(begin_iter, src_can.begin()); BOOST_AUTO(end_iter, src_can.end());
+		if (src_can.size() > size) //some items left behind
 		{
-			size = max_size - size; //maximum items this time can handle
-			BOOST_AUTO(begin_iter, src_can.begin()); BOOST_AUTO(end_iter, src_can.end());
-			if (src_can.size() > size) //some items left behind
-			{
-				size_t left_num = src_can.size() - size;
-				if (left_num > size) //find the minimum movement
-					std::advance(end_iter = begin_iter, size);
-				else
-					std::advance(end_iter, -(int) left_num);
-			}
+			size_t left_num = src_can.size() - size;
+			if (left_num > size) //find the minimum movement
+				std::advance(end_iter = begin_iter, size);
 			else
-				size = src_can.size();
-			//use size to avoid std::distance() call, so, size must correct
-			dest_can.splice(dest_can.end(), src_can, begin_iter, end_iter, size);
-
-			return size > 0;
+				std::advance(end_iter, -(int) left_num);
 		}
+		else
+			size = src_can.size();
+		//use size to avoid std::distance() call, so, size must correct
+		dest_can.splice(dest_can.end(), src_can, begin_iter, end_iter, size);
 
-		return false;
+		return size > 0;
 	}
+
+	return false;
+}
 
 //member functions, used to do something to any member container(except map and multimap) optionally with any member mutex
 #define DO_SOMETHING_TO_ALL_MUTEX(CAN, MUTEX) DO_SOMETHING_TO_ALL_MUTEX_NAME(do_something_to_all, CAN, MUTEX)
@@ -349,7 +350,8 @@ bool FUNNAME(const char* const pstr[], const size_t len[], size_t num, bool can_
 TCP_SEND_MSG_CALL_SWITCH(FUNNAME, bool)
 
 #define TCP_BROADCAST_MSG(FUNNAME, SEND_FUNNAME) \
-void FUNNAME(const char* const pstr[], const size_t len[], size_t num, bool can_overflow = false) {ST_THIS do_something_to_all(boost::bind(&Socket::SEND_FUNNAME, _1, pstr, len, num, can_overflow));} \
+void FUNNAME(const char* const pstr[], const size_t len[], size_t num, bool can_overflow = false) \
+	{ST_THIS do_something_to_all(boost::bind(&Socket::SEND_FUNNAME, _1, pstr, len, num, can_overflow));} \
 TCP_SEND_MSG_CALL_SWITCH(FUNNAME, void)
 //TCP msg sending interface
 ///////////////////////////////////////////////////

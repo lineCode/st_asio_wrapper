@@ -136,7 +136,7 @@ public:
 		boost::uint_fast64_t recv_byte_sum; //include msgs in receiving buffer
 		stat_duration dispatch_dealy_sum; //from parse_msg(exclude msg unpacking) to on_msg_handle
 		stat_duration recv_idle_sum;
-		//during this duration, st_socket suspended msg reception (receiving buffer overflow or msg dispatching suspended)
+		//during this duration, st_socket suspended msg reception (receiving buffer overflow, msg dispatching suspended or doing congestion control)
 #ifndef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
 		stat_duration handle_time_1_sum; //on_msg consumed time, this indicate the efficiency of msg handling
 #endif
@@ -144,23 +144,18 @@ public:
 	};
 
 protected:
-	struct in_msg : public InMsgType
+	template<typename T>
+	struct msg_with_begin_time : public T
 	{
-		in_msg() {restart();}
+		msg_with_begin_time() {restart();}
 		void restart() {restart(statistic::local_time());}
 		void restart(const typename statistic::stat_time& begin_time_) {begin_time = begin_time_;}
 
 		typename statistic::stat_time begin_time;
 	};
 
-	struct out_msg : public OutMsgType
-	{
-		out_msg() {restart();}
-		void restart() {restart(statistic::local_time());}
-		void restart(const typename statistic::stat_time& begin_time_) {begin_time = begin_time_;}
-
-		typename statistic::stat_time begin_time;
-	};
+	typedef msg_with_begin_time<InMsgType> in_msg;
+	typedef msg_with_begin_time<OutMsgType> out_msg;
 
 	//keep size() constant time would better, because we invoke it frequently, so don't use std::list(gcc)
 	typedef boost::container::list<in_msg> in_container_type;
