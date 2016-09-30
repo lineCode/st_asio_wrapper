@@ -188,8 +188,8 @@ protected:
 	{
 		packer_->reset_state();
 
-		sending = suspend_send_msg_ = false;
-		dispatching = suspend_dispatch_msg_ = false;
+		sending = paused_sending = false;
+		dispatching = paused_dispatching = congestion_controlling = false;
 #ifndef ST_ASIO_ENHANCED_STABILITY
 		closing = false;
 #endif
@@ -244,15 +244,14 @@ public:
 		return do_send_msg();
 	}
 
-	void suspend_send_msg(bool suspend) {if (!(suspend_send_msg_ = suspend)) send_msg();}
-	bool suspend_send_msg() const {return suspend_send_msg_;}
+	void suspend_send_msg(bool suspend) {if (!(paused_sending = suspend)) send_msg();}
+	bool suspend_send_msg() const {return paused_sending;}
 
-	void suspend_dispatch_msg(bool suspend)
-	{
-		suspend_dispatch_msg_ = suspend;
-		do_dispatch_msg(true);
-	}
-	bool suspend_dispatch_msg() const {return suspend_dispatch_msg_;}
+	void suspend_dispatch_msg(bool suspend) {if (!(paused_dispatching = suspend)) do_dispatch_msg(true);}
+	bool suspend_dispatch_msg() const {return paused_dispatching;}
+
+	void congestion_control(bool enable) {congestion_controlling = enable;}
+	bool congestion_control() const {return congestion_controlling;}
 
 	const struct statistic& get_statistic() const {return stat;}
 
@@ -295,7 +294,7 @@ protected:
 	virtual void do_recv_msg() = 0;
 
 	virtual bool is_closable() {return true;}
-	virtual bool is_send_allowed() {return !suspend_send_msg_;} //can send msg or not(just put into send buffer)
+	virtual bool is_send_allowed() {return !paused_sending;} //can send msg or not(just put into send buffer)
 
 	//generally, you don't have to rewrite this to maintain the status of connections(TCP)
 	virtual void on_send_error(const boost::system::error_code& ec) {unified_out::error_out("send msg error (%d %s)", ec.value(), ec.message().data());}
@@ -356,10 +355,10 @@ protected:
 		decltype(temp_msg_buffer) temp_buffer;
 
 #ifndef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
-		if (!temp_msg_buffer.empty() && !suspend_dispatch_msg_)
+		if (!temp_msg_buffer.empty() && !paused_dispatching && !congestion_controlling)
 		{
 			auto begin_time = statistic::local_time();
-			for (auto iter = std::begin(temp_msg_buffer); !suspend_dispatch_msg_ && iter != std::end(temp_msg_buffer);)
+			for (auto iter = std::begin(temp_msg_buffer); !paused_dispatching && !congestion_controlling && iter != std::end(temp_msg_buffer);)
 				if (on_msg(*iter))
 					temp_msg_buffer.erase(iter++);
 				else
@@ -389,7 +388,7 @@ protected:
 
 	void do_dispatch_msg(bool need_lock)
 	{
-		if (suspend_dispatch_msg_)
+		if (paused_dispatching)
 			return;
 
 		boost::unique_lock<boost::shared_mutex> lock(recv_msg_buffer_mutex, boost::defer_lock);
@@ -513,8 +512,8 @@ protected:
 	boost::shared_mutex send_msg_buffer_mutex;
 	boost::shared_mutex recv_msg_buffer_mutex;
 
-	bool sending, suspend_send_msg_;
-	bool dispatching, suspend_dispatch_msg_;
+	bool sending, paused_sending;
+	bool dispatching, paused_dispatching, congestion_controlling;
 #ifndef ST_ASIO_ENHANCED_STABILITY
 	bool closing;
 #endif

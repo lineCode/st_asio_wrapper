@@ -77,13 +77,20 @@
  *     4. Stop asio_server (input 'quit');
  *     5. If asio_server successfully quitted, means this edition doesn't have above defect.
  *
+ * 2016.10.xx	version 1.3.0
+ * Add semi-automatic congestion control.
+ * Drop original congestion control, because it cannot totally resolve dead loop.
+ * Drop post_msg_buffer and corresponding functions (like post_msg()), timer (st_socket::TIMER_HANDLE_POST_BUFFER).
+ * st_timer now can be used independently.
+ * Add a new type st_timer::tid to represent timer ID. 
+ *
  */
 
 #ifndef ST_ASIO_WRAPPER_H_
 #define ST_ASIO_WRAPPER_H_
 
-#define ST_ASIO_WRAPPER_VER		10200	//[x]xyyzz -> [x]x.[y]y.[z]z
-#define ST_ASIO_WRAPPER_VERSION	"1.2.0"
+#define ST_ASIO_WRAPPER_VER		10300	//[x]xyyzz -> [x]x.[y]y.[z]z
+#define ST_ASIO_WRAPPER_VERSION	"1.3.0"
 
 #ifdef _MSC_VER
 	static_assert(_MSC_VER >= 1600, "st_asio_wrapper must be compiled with Visual C++ 10.0 or higher.");

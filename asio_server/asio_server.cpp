@@ -48,6 +48,21 @@ using namespace st_asio_wrapper::ext;
 //notice: do not do this for unpacker, because unpacker has member variables and can't share each other
 auto global_packer(boost::make_shared<ST_ASIO_DEFAULT_PACKER>());
 
+//about congestion control
+//
+//in 1.3, congestion control has been removed (no post_msg nor post_native_msg anymore), this is because
+//without known the business (or logic), framework cannot always do congestion control properly.
+//now, users should take the responsibility to do congestion control, there're two ways:
+//
+//1. for receiver, if you cannot handle msgs timely, which means the bottleneck is in your business,
+//    you should open/close congestion control intermittently;
+//   for sender, send msgs in on_msg_send() or use sending buffer limitation (like safe_send_msg(..., false)),
+//    but must not in service threads, please note.
+//
+//2. for sender, if responses are available (like pingpong test), send msgs in on_msg()/on_msg_handle().
+//
+//asio_server chose method #1
+
 //demonstrate how to control the type of st_server_socket_base::server from template parameter
 class i_echo_server : public i_server
 {
@@ -85,40 +100,40 @@ protected:
 	}
 
 	//msg handling: send the original msg back(echo server)
+	//congestion control, method #1, need peer's cooperation.
 #ifndef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
 	//this virtual function doesn't exists if ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER been defined
 	virtual bool on_msg(out_msg_type& msg)
 	{
-		//demonstrate how to do congestion control, please note.
 		bool re = send_msg(msg.data(), msg.size());
 		if (!re)
 		{
-			suspend_dispatch_msg(true); //very important
-			puts("suspend msg dispatching.");
+			//cannot handle (send it back) this msg timely, begin congestion control
+			//'msg' will be put into receiving buffer, and be dispatched in on_msg_handle() in the future
+			congestion_control(true); //very important
+			unified_out::warning_out("open congestion control.");
 		}
 
 		return re;
 	}
 
-	//we should handle msg in on_msg_handle for time-consuming task like this:
 	virtual bool on_msg_handle(out_msg_type& msg, bool link_down)
 	{
-		//demonstrate how to do congestion control, please note.
 		bool re = send_msg(msg.data(), msg.size());
 		if (re)
 		{
-			suspend_dispatch_msg(false); //very important
-			puts("resume msg dispatching.");
+			//successfully handled the only one msg in receiving buffer, end congestion control
+			//subsequent msgs will be dispatched via on_msg() again.
+			congestion_control(false); //very important
+			unified_out::warning_out("close congestion control.");
 		}
 
 		return re;
 	}
 #else
-	//we should handle msg in on_msg_handle for time-consuming task like this:
+	//if we used receiving buffer, congestion control will become much simpler, like this:
 	virtual bool on_msg_handle(out_msg_type& msg, bool link_down) {return send_msg(msg.data(), msg.size());}
 #endif
-	//please keep in mind that if we defined ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER, st_tcp_socket will directly
-	//use msg recv buffer, and we need not rewrite on_msg(), which doesn't exists any more
 	//msg handling end
 };
 

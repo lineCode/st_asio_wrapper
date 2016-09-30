@@ -6,12 +6,11 @@
 #define ST_ASIO_ASYNC_ACCEPT_NUM	5
 #define ST_ASIO_REUSE_OBJECT //use objects pool
 //#define ST_ASIO_FREE_OBJECT_INTERVAL	60 //it's useless if ST_ASIO_REUSE_OBJECT macro been defined
-#define ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER //force to use the msg recv buffer
+//#define ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER //force to use the msg recv buffer
 #define ST_ASIO_ENHANCED_STABILITY
 #define ST_ASIO_FULL_STATISTIC //full statistic will slightly impact efficiency.
 //#define ST_ASIO_USE_STEADY_TIMER
 //#define ST_ASIO_USE_SYSTEM_TIMER
-#define ST_ASIO_MAX_MSG_NUM		1
 
 //use the following macro to control the type of packer and unpacker
 #define PACKER_UNPACKER_TYPE	0
@@ -102,6 +101,7 @@ protected:
 	}
 
 	//msg handling: send the original msg back(echo server)
+	//congestion control, method #1, need peer's cooperation.
 #ifndef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
 	//this virtual function doesn't exists if ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER been defined
 	virtual bool on_msg(out_msg_type& msg)

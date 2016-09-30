@@ -58,7 +58,7 @@ static bool check_msg;
 //
 //2. for sender, if responses are available (like pingpong test), send msgs in on_msg()/on_msg_handle().
 //
-//test_client chose method #2
+//test_client chose method #1
 
 ///////////////////////////////////////////////////
 //msg sending interface
@@ -112,7 +112,7 @@ protected:
 	//msg handling end
 
 #ifdef ST_ASIO_WANT_MSG_SEND_NOTIFY
-	//congestion control, method #2
+	//congestion control, method #1, need peer's cooperation.
 	virtual void on_msg_send(in_msg_type& msg)
 	{
 		if (0 == --msg_num)
@@ -128,6 +128,7 @@ protected:
 
 		send_msg(pstr, msg_len);
 		//this invocation has no chance to fail (by insufficient sending buffer), even can_overflow is false
+		//this is because here is the only place that will send msgs and here also means the receiving buffer at least can hold one more msg.
 	}
 #endif
 
@@ -404,7 +405,7 @@ int main(int argc, const char* argv[])
 				{
 					memcpy(buff, &i, sizeof(size_t)); //seq
 
-					//congestion control, method #3
+					//congestion control, method #1, need peer's cooperation.
 					switch (model)
 					{
 					case 0:

@@ -68,12 +68,14 @@ protected:
 	virtual bool on_msg_handle(out_msg_type& msg, bool link_down) {handle_msg(msg); return true;}
 
 #ifdef ST_ASIO_WANT_MSG_SEND_NOTIFY
+	//congestion control, method #1, need peer's cooperation.
 	virtual void on_msg_send(in_msg_type& msg)
 	{
 		send_bytes += msg.size();
 		if (send_bytes < total_bytes)
 			direct_send_msg(msg);
 			//this invocation has no chance to fail (by insufficient sending buffer), even can_overflow is false
+			//this is because here is the only place that will send msgs and here also means the receiving buffer at least can hold one more msg.
 	}
 
 private:
@@ -85,6 +87,7 @@ private:
 	}
 #else
 private:
+	//congestion control, method #2, doesn't need peer's cooperation.
 	void handle_msg(out_msg_type& msg)
 	{
 		if (0 == total_bytes)
@@ -100,7 +103,8 @@ private:
 		else
 			direct_send_msg(msg);
 			//this invocation has no chance to fail (by insufficient sending buffer), even can_overflow is false
-			//this is because pingpong_server never send msgs initiatively
+			//this is because pingpong_server never send msgs initiatively, and,
+			//here is the only place that will send msgs and here also means the receiving buffer at least can hold one more msg.
 	}
 #endif
 

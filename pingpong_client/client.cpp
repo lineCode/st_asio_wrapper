@@ -30,6 +30,24 @@ boost::atomic_ushort completed_session_num;
 st_atomic<unsigned short> completed_session_num;
 #endif
 
+//about congestion control
+//
+//in 1.3, congestion control has been removed (no post_msg nor post_native_msg anymore), this is because
+//without known the business (or logic), framework cannot always do congestion control properly.
+//now, users should take the responsibility to do congestion control, there're two ways:
+//
+//1. for receiver, if you cannot handle msgs timely, which means the bottleneck is in your business,
+//    you should open/close congestion control intermittently;
+//   for sender, send msgs in on_msg_send() or use sending buffer limitation (like safe_send_msg(..., false)),
+//    but must not in service threads, please note.
+//
+//2. for sender, if responses are available (like pingpong test), send msgs in on_msg()/on_msg_handle().
+//
+//pingpong_client will choose method #1 if defined ST_ASIO_WANT_MSG_SEND_NOTIFY, otherwise #2
+//BTW, if pingpong_client chose method #2, then pingpong_server can work properly without any congestion control,
+//which means pingpong_server can send msgs back with can_overflow parameter equal to true, and memory occupation
+//will be under control.
+
 class echo_socket : public st_connector
 {
 public:
@@ -54,16 +72,17 @@ protected:
 	virtual bool on_msg_handle(out_msg_type& msg, bool link_down) {handle_msg(msg); return true;}
 
 #ifdef ST_ASIO_WANT_MSG_SEND_NOTIFY
+	//congestion control, method #1, need peer's cooperation.
 	virtual void on_msg_send(in_msg_type& msg)
 	{
 		send_bytes += msg.size();
 		if (send_bytes < total_bytes)
 			direct_send_msg(std::move(msg));
+			//this invocation has no chance to fail (by insufficient sending buffer), even can_overflow is false
+			//this is because here is the only place that will send msgs and here also means the receiving buffer at least can hold one more msg.
 	}
-#endif
 
 private:
-#ifdef ST_ASIO_WANT_MSG_SEND_NOTIFY
 	void handle_msg(out_msg_ctype& msg)
 	{
 		recv_bytes += msg.size();
@@ -71,6 +90,8 @@ private:
 			begin_time.stop();
 	}
 #else
+private:
+	//congestion control, method #2, doesn't need peer's cooperation.
 	void handle_msg(out_msg_type& msg)
 	{
 		if (0 == total_bytes)
@@ -85,6 +106,9 @@ private:
 		}
 		else
 			direct_send_msg(std::move(msg));
+			//this invocation has no chance to fail (by insufficient sending buffer), even can_overflow is false
+			//this is because pingpong_server never send msgs initiatively, and,
+			//here is the only place that will send msgs and here also means the receiving buffer at least can hold one more msg.
 	}
 #endif
 

@@ -8,7 +8,7 @@
 //#define ST_ASIO_REUSE_OBJECT //use objects pool
 //#define ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER //force to use the msg recv buffer
 //#define ST_ASIO_CLEAR_OBJECT_INTERVAL	1
-#define ST_ASIO_WANT_MSG_SEND_NOTIFY
+//#define ST_ASIO_WANT_MSG_SEND_NOTIFY
 #define ST_ASIO_FULL_STATISTIC //full statistic will slightly impact efficiency.
 //configuration
 
@@ -46,6 +46,21 @@ using namespace st_asio_wrapper::ext;
 #define RESUME_COMMAND	"resume"
 
 static bool check_msg;
+
+//about congestion control
+//
+//in 1.3, congestion control has been removed (no post_msg nor post_native_msg anymore), this is because
+//without known the business (or logic), framework cannot always do congestion control properly.
+//now, users should take the responsibility to do congestion control, there're two ways:
+//
+//1. for receiver, if you cannot handle msgs timely, which means the bottleneck is in your business,
+//    you should open/close congestion control intermittently;
+//   for sender, send msgs in on_msg_send() or use sending buffer limitation (like safe_send_msg(..., false)),
+//    but must not in service threads, please note.
+//
+//2. for sender, if responses are available (like pingpong test), send msgs in on_msg()/on_msg_handle().
+//
+//test_client chose method #1
 
 ///////////////////////////////////////////////////
 //msg sending interface
@@ -91,15 +106,15 @@ public:
 
 protected:
 	//msg handling
-#ifndef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER //not force to use msg recv buffer(so on_msg will make the decision)
-	//we can handle msg very fast, so we don't use recv buffer(return true)
+#ifndef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
+	//this virtual function doesn't exists if ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER been defined
 	virtual bool on_msg(out_msg_type& msg) {handle_msg(msg); return true;}
 #endif
-	//we should handle msg in on_msg_handle for time-consuming task like this:
 	virtual bool on_msg_handle(out_msg_type& msg, bool link_down) {handle_msg(msg); return true;}
 	//msg handling end
 
 #ifdef ST_ASIO_WANT_MSG_SEND_NOTIFY
+	//congestion control, method #1, need peer's cooperation.
 	virtual void on_msg_send(in_msg_type& msg)
 	{
 		if (0 == --msg_num)
@@ -114,6 +129,8 @@ protected:
 		memcpy(pstr, &send_index, sizeof(size_t)); //seq
 
 		send_msg(pstr, msg_len);
+		//this invocation has no chance to fail (by insufficient sending buffer), even can_overflow is false
+		//this is because here is the only place that will send msgs and here also means the receiving buffer at least can hold one more msg.
 	}
 #endif
 
@@ -124,6 +141,9 @@ private:
 		if (check_msg && (msg.size() < sizeof(size_t) || 0 != memcmp(&recv_index, msg.data(), sizeof(size_t))))
 			printf("check msg error: " ST_ASIO_SF ".\n", recv_index);
 		++recv_index;
+
+		//i'm the bottleneck -_-
+//		boost::this_thread::sleep(boost::get_system_time() + boost::posix_time::milliseconds(10));
 	}
 
 private:
@@ -187,7 +207,7 @@ public:
 
 	///////////////////////////////////////////////////
 	//msg sending interface
-	//guarantee send msg successfully even if can_overflow equal to false, success at here just means putting the msg into st_tcp_socket's send buffer successfully
+	//guarantee send msg successfully even if can_overflow is false, success at here just means putting the msg into st_tcp_socket's send buffer successfully
 	TCP_RANDOM_SEND_MSG(safe_random_send_msg, safe_send_msg)
 	TCP_RANDOM_SEND_MSG(safe_random_send_native_msg, safe_send_native_msg)
 	//msg sending interface
@@ -377,14 +397,15 @@ int main(int argc, const char* argv[])
 				{
 					memcpy(buff, &i, sizeof(size_t)); //seq
 
+					//congestion control, method #1, need peer's cooperation.
 					switch (model)
 					{
 					case 0:
-						client.safe_broadcast_msg(buff, msg_len);
+						client.safe_broadcast_msg(buff, msg_len); //can_overflow is false, it's important
 						send_bytes += link_num * msg_len;
 						break;
 					case 1:
-						client.safe_random_send_msg(buff, msg_len);
+						client.safe_random_send_msg(buff, msg_len); //can_overflow is false, it's important
 						send_bytes += msg_len;
 						break;
 					default:

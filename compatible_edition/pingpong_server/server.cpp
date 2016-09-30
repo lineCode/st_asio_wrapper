@@ -46,6 +46,7 @@ public:
 
 protected:
 	//msg handling: send the original msg back(echo server)
+	//congestion control, method #1, need peer's cooperation.
 #ifndef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
 	//this virtual function doesn't exists if ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER been defined
 	virtual bool on_msg(out_msg_type& msg)
