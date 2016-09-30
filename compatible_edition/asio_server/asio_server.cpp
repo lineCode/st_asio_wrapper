@@ -23,6 +23,7 @@
 #define ST_ASIO_DEFAULT_PACKER replaceable_packer
 #define ST_ASIO_DEFAULT_UNPACKER replaceable_unpacker
 #elif 2 == PACKER_UNPACKER_TYPE
+#define ST_ASIO_DEFAULT_PACKER fixed_length_packer
 #define ST_ASIO_DEFAULT_UNPACKER fixed_length_unpacker
 #elif 3 == PACKER_UNPACKER_TYPE
 #define ST_ASIO_DEFAULT_PACKER prefix_suffix_packer
@@ -89,25 +90,35 @@ protected:
 	//this virtual function doesn't exists if ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER been defined
 	virtual bool on_msg(out_msg_type& msg)
 	{
-	#if 2 == PACKER_UNPACKER_TYPE
-		//we don't have fixed_length_packer, so use packer instead, but need to pack msgs with native manner.
-		return send_native_msg(msg.data(), msg.size(), true);
-	#else
-		return send_msg(msg.data(), msg.size(), true);
-	#endif
+		//demonstrate how to do congestion control, please note.
+		bool re = send_msg(msg.data(), msg.size());
+		if (!re)
+		{
+			suspend_dispatch_msg(true); //very important
+			unified_out::warning_out("suspend msg dispatching.");
+		}
+
+		return re;
 	}
-#endif
+
 	//we should handle msg in on_msg_handle for time-consuming task like this:
 	virtual bool on_msg_handle(out_msg_type& msg, bool link_down)
 	{
-	#if 2 == PACKER_UNPACKER_TYPE
-		//we don't have fixed_length_packer, so use packer instead, but need to pack msgs with native manner.
-		return send_native_msg(msg.data(), msg.size());
-	#else
-		return send_msg(msg.data(), msg.size());
-	#endif
+		//demonstrate how to do congestion control, please note.
+		bool re = send_msg(msg.data(), msg.size());
+		if (re)
+		{
+			suspend_dispatch_msg(false); //very important
+			unified_out::warning_out("resume msg dispatching.");
+		}
+
+		return re;
 	}
-	//please remember that we have defined ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER, so, st_tcp_socket will directly
+#else
+	//we should handle msg in on_msg_handle for time-consuming task like this:
+	virtual bool on_msg_handle(out_msg_type& msg, bool link_down) {return send_msg(msg.data(), msg.size());}
+#endif
+	//please keep in mind that if we defined ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER, st_tcp_socket will directly
 	//use msg recv buffer, and we need not rewrite on_msg(), which doesn't exists any more
 	//msg handling end
 };
