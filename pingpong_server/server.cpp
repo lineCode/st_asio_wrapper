@@ -102,14 +102,14 @@ protected:
 
 int main(int argc, const char* argv[])
 {
-	printf("usage: pingpong_server [<service thread number=1> [<port=%d> [ip=0.0.0.0]]]\n", ST_ASIO_SERVER_PORT);
+	printf("usage: %s [<service thread number=1> [<port=%d> [ip=0.0.0.0]]]\n", argv[0], ST_ASIO_SERVER_PORT);
 	if (argc >= 2 && (0 == strcmp(argv[1], "--help") || 0 == strcmp(argv[1], "-h")))
 		return 0;
 	else
 		puts("type " QUIT_COMMAND " to end.");
 
-	st_service_pump service_pump;
-	echo_server echo_server_(service_pump);
+	st_service_pump sp;
+	echo_server echo_server_(sp);
 
 	if (argc > 3)
 		echo_server_.set_server_addr(atoi(argv[2]), argv[3]);
@@ -120,13 +120,13 @@ int main(int argc, const char* argv[])
 	if (argc > 1)
 		thread_num = std::min(16, std::max(thread_num, atoi(argv[1])));
 
-	service_pump.start_service(thread_num);
-	while(service_pump.is_running())
+	sp.start_service(thread_num);
+	while(sp.is_running())
 	{
 		std::string str;
 		std::cin >> str;
 		if (QUIT_COMMAND == str)
-			service_pump.stop_service();
+			sp.stop_service();
 		else if (LIST_STATUS == str)
 		{
 			printf("link #: " ST_ASIO_SF ", invalid links: " ST_ASIO_SF "\n", echo_server_.size(), echo_server_.invalid_object_size());

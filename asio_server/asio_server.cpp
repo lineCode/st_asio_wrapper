@@ -156,20 +156,20 @@ public:
 
 int main(int argc, const char* argv[])
 {
-	printf("usage: asio_server [<service thread number=1> [<port=%d> [ip=0.0.0.0]]]\n", ST_ASIO_SERVER_PORT);
+	printf("usage: %s [<service thread number=1> [<port=%d> [ip=0.0.0.0]]]\n", argv[0], ST_ASIO_SERVER_PORT);
 	puts("normal server's port will be 100 larger.");
 	if (argc >= 2 && (0 == strcmp(argv[1], "--help") || 0 == strcmp(argv[1], "-h")))
 		return 0;
 	else
 		puts("type " QUIT_COMMAND " to end.");
 
-	st_service_pump service_pump;
+	st_service_pump sp;
 	//only need a simple server? you can directly use st_server or st_server_base.
 	//because we use st_server_socket_base directly, so this server cannot support fixed_length_unpacker and prefix_suffix_packer/prefix_suffix_unpacker,
 	//the reason is these packer and unpacker need additional initializations that st_server_socket_base not implemented, see echo_socket's constructor for more details.
 	typedef st_server_socket_base<packer, unpacker> normal_server_socket;
-	st_server_base<normal_server_socket> server_(service_pump);
-	echo_server echo_server_(service_pump); //echo server
+	st_server_base<normal_server_socket> server_(sp);
+	echo_server echo_server_(sp); //echo server
 
 	if (argc > 3)
 	{
@@ -192,17 +192,17 @@ int main(int argc, const char* argv[])
 		global_packer->prefix_suffix("begin", "end");
 #endif
 
-	service_pump.start_service(thread_num);
-	while(service_pump.is_running())
+	sp.start_service(thread_num);
+	while(sp.is_running())
 	{
 		std::string str;
 		std::cin >> str;
 		if (QUIT_COMMAND == str)
-			service_pump.stop_service();
+			sp.stop_service();
 		else if (RESTART_COMMAND == str)
 		{
-			service_pump.stop_service();
-			service_pump.start_service(thread_num);
+			sp.stop_service();
+			sp.start_service(thread_num);
 		}
 		else if (LIST_STATUS == str)
 		{
