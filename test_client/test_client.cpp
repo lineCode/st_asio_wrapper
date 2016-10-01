@@ -178,10 +178,10 @@ public:
 
 	void shutdown_some_client(size_t n)
 	{
-		static auto test_index = -1;
-		++test_index;
+		static auto index = -1;
+		++index;
 
-		switch (test_index % 6)
+		switch (index % 6)
 		{
 #ifdef ST_ASIO_CLEAR_OBJECT_INTERVAL
 			//method #1

@@ -132,7 +132,7 @@ public:
 
 int main(int argc, const char* argv[])
 {
-	printf("usage: pingpong_client [<service thread number=1> [<port=%d> [<ip=%s> [link num=16]]]]\n", ST_ASIO_SERVER_PORT, ST_ASIO_SERVER_IP);
+	printf("usage: %s [<service thread number=1> [<port=%d> [<ip=%s> [link num=16]]]]\n", argv[0], ST_ASIO_SERVER_PORT, ST_ASIO_SERVER_IP);
 	if (argc >= 2 && (0 == strcmp(argv[1], "--help") || 0 == strcmp(argv[1], "-h")))
 		return 0;
 	else
@@ -146,8 +146,8 @@ int main(int argc, const char* argv[])
 	printf("exec: echo_client with " ST_ASIO_SF " links\n", link_num);
 	///////////////////////////////////////////////////////////
 
-	st_service_pump service_pump;
-	echo_client client(service_pump);
+	st_service_pump sp;
+	echo_client client(sp);
 
 //	argv[2] = "::1" //ipv6
 //	argv[2] = "127.0.0.1" //ipv4
@@ -165,13 +165,13 @@ int main(int argc, const char* argv[])
 	for (size_t i = 0; i < link_num; ++i)
 		client.add_client(port, ip);
 
-	service_pump.start_service(thread_num);
-	while(service_pump.is_running())
+	sp.start_service(thread_num);
+	while(sp.is_running())
 	{
 		std::string str;
 		std::getline(std::cin, str);
 		if (QUIT_COMMAND == str)
-			service_pump.stop_service();
+			sp.stop_service();
 		else if (LIST_STATUS == str)
 		{
 			printf("link #: " ST_ASIO_SF ", valid links: " ST_ASIO_SF ", invalid links: " ST_ASIO_SF "\n", client.size(), client.valid_size(), client.invalid_object_size());

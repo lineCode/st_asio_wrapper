@@ -178,18 +178,17 @@ public:
 
 	void shutdown_some_client(size_t n)
 	{
-		static int test_index = -1;
-		++test_index;
+		static int index = -1;
+		++index;
 
-		int index = test_index % 6;
 #ifdef ST_ASIO_CLEAR_OBJECT_INTERVAL
 		boost::shared_lock<boost::shared_mutex> lock(object_can_mutex);
 #else
 		boost::shared_lock<boost::shared_mutex> lock(object_can_mutex, boost::defer_lock);
-		if (index > 2) lock.lock();
+		if ((index % 6) > 2) lock.lock();
 #endif
 
-		switch (index)
+		switch (index % 6)
 		{
 #ifdef ST_ASIO_CLEAR_OBJECT_INTERVAL
 			//method #1
@@ -224,7 +223,7 @@ public:
 
 int main(int argc, const char* argv[])
 {
-	printf("usage: test_client [<service thread number=1> [<port=%d> [<ip=%s> [link num=16]]]]\n", ST_ASIO_SERVER_PORT, ST_ASIO_SERVER_IP);
+	printf("usage: %s [<service thread number=1> [<port=%d> [<ip=%s> [link num=16]]]]\n", argv[0], ST_ASIO_SERVER_PORT, ST_ASIO_SERVER_IP);
 	if (argc >= 2 && (0 == strcmp(argv[1], "--help") || 0 == strcmp(argv[1], "-h")))
 		return 0;
 	else
@@ -235,11 +234,11 @@ int main(int argc, const char* argv[])
 	if (argc > 4)
 		link_num = std::min(ST_ASIO_MAX_OBJECT_NUM, std::max(atoi(argv[4]), 1));
 
-	printf("exec: test_client with " ST_ASIO_SF " links\n", link_num);
+	printf("exec: %s with " ST_ASIO_SF " links\n", argv[0], link_num);
 	///////////////////////////////////////////////////////////
 
-	st_service_pump service_pump;
-	test_client client(service_pump);
+	st_service_pump sp;
+	test_client client(sp);
 
 //	argv[2] = "::1" //ipv6
 //	argv[2] = "127.0.0.1" //ipv4
@@ -270,17 +269,17 @@ int main(int argc, const char* argv[])
 		++thread_num;
 #endif
 
-	service_pump.start_service(thread_num);
-	while(service_pump.is_running())
+	sp.start_service(thread_num);
+	while(sp.is_running())
 	{
 		std::string str;
 		std::getline(std::cin, str);
 		if (QUIT_COMMAND == str)
-			service_pump.stop_service();
+			sp.stop_service();
 		else if (RESTART_COMMAND == str)
 		{
-			service_pump.stop_service();
-			service_pump.start_service(thread_num);
+			sp.stop_service();
+			sp.start_service(thread_num);
 		}
 		else if (LIST_STATUS == str)
 		{

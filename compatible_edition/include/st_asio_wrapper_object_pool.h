@@ -218,7 +218,7 @@ protected:
 	}
 #endif
 
-	object_type create_object() {return create_object(boost::ref(service_pump));}
+	object_type create_object() {return create_object(boost::ref(sp));}
 
 public:
 	//to configure unordered_set(for example, set factor or reserved size), not locked the mutex, so must be called before service_pump starting up.
