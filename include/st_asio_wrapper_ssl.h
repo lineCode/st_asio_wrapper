@@ -155,7 +155,7 @@ public:
 	boost::asio::ssl::context& ssl_context() {return ctx;}
 
 	using super::create_object;
-	typename st_ssl_object_pool::object_type create_object() {return create_object(ST_THIS service_pump, ctx);}
+	typename st_ssl_object_pool::object_type create_object() {return create_object(ST_THIS sp, ctx);}
 	template<typename Arg>
 	typename st_ssl_object_pool::object_type create_object(Arg& arg) {return create_object(arg, ctx);}
 
