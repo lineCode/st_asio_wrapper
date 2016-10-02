@@ -234,6 +234,7 @@ private:
 
 		boost::unique_lock<boost::shared_mutex> lock(ST_THIS send_msg_buffer_mutex);
 		ST_THIS sending = false;
+
 		if (!ec)
 			do_send_msg(); //send msg sequentially, that means second send only after first send success
 	}

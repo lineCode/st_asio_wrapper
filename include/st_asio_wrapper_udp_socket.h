@@ -228,7 +228,11 @@ private:
 
 		boost::unique_lock<boost::shared_mutex> lock(ST_THIS send_msg_buffer_mutex);
 		ST_THIS sending = false;
-		do_send_msg(); //send msg sequentially, that means second send only after first send success
+
+		//send msg sequentially, that means second send only after first send success
+		//under windows, send a msg to addr_any may cause sending errors, please note
+		//for UDP in st_asio_wrapper, sending error will not stop the following sending.
+		do_send_msg();
 	}
 
 protected:
