@@ -223,27 +223,19 @@ private:
 #ifdef ST_ASIO_WANT_MSG_SEND_NOTIFY
 			ST_THIS on_msg_send(last_send_msg.front());
 #endif
+#ifdef ST_ASIO_WANT_ALL_MSG_SEND_NOTIFY
+			if (ST_THIS send_msg_buffer.empty())
+				ST_THIS on_all_msg_send(last_send_msg.back());
+#endif
 		}
 		else
 			ST_THIS on_send_error(ec);
-
-#ifdef ST_ASIO_WANT_ALL_MSG_SEND_NOTIFY
-		typename super::in_msg msg;
-		msg.swap(last_send_msg.back());
-#endif
 		last_send_msg.clear();
 
 		boost::unique_lock<boost::shared_mutex> lock(ST_THIS send_msg_buffer_mutex);
 		ST_THIS sending = false;
-
-		//send msg sequentially, that means second send only after first send success
-#ifdef ST_ASIO_WANT_ALL_MSG_SEND_NOTIFY
-		if (!ec && !do_send_msg())
-			ST_THIS on_all_msg_send(msg);
-#else
 		if (!ec)
-			do_send_msg();
-#endif
+			do_send_msg(); //send msg sequentially, that means second send only after first send success
 	}
 
 protected:
