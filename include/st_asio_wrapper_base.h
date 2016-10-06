@@ -221,7 +221,7 @@ public:
 	message_queue(size_t size) : super(size) {}
 
 	//it's not thread safe for 'other', please note.
-	size_t move_items_in(typename super::me& other, size_t max_size = ASCS_MAX_MSG_NUM)
+	size_t move_items_in(typename super::me& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
 	{
 		typename super::lock_guard lock(*this);
 		auto cur_size = ST_THIS size();
@@ -244,7 +244,7 @@ public:
 	}
 
 	//it's no thread safe for 'other', please note.
-	size_t move_items_in(boost::container::list<T>& other, size_t max_size = ASCS_MAX_MSG_NUM)
+	size_t move_items_in(boost::container::list<T>& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
 	{
 		typename super::lock_guard lock(*this);
 		auto cur_size = ST_THIS size();
