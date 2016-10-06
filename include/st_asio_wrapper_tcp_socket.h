@@ -129,10 +129,10 @@ protected:
 				typename super::in_container_type::lock_guard lock(ST_THIS send_msg_buffer);
 				while (ST_THIS send_msg_buffer.try_dequeue_(msg))
 				{
-					bufs.push_back(boost::asio::buffer(msg.data(), msg.size()));
 					ST_THIS stat.send_delay_sum += end_time - msg.begin_time;
 					size += msg.size();
 					last_send_msg.push_back(std::move(msg));
+					bufs.push_back(boost::asio::buffer(last_send_msg.back().data(), last_send_msg.back().size()));
 					if (size >= max_send_size)
 						break;
 				}
