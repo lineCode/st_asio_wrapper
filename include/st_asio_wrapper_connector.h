@@ -72,7 +72,7 @@ public:
 	void disconnect(bool reconnect = false) {force_shutdown(reconnect);}
 	void force_shutdown(bool reconnect = false)
 	{
-		if (1 != ST_THIS shutdown_state)
+		if (super::shutdown_states::FORCE != ST_THIS shutdown_state)
 		{
 			show_info("client link:", "been shut down.");
 			reconnecting = reconnect;
@@ -106,7 +106,7 @@ public:
 		boost::system::error_code ec;
 		auto ep = ST_THIS lowest_layer().local_endpoint(ec);
 		if (!ec)
-			unified_out::info_out("%s %s:%hu %s", head, ep.address().to_string().c_str(), ep.port(), tail);
+			unified_out::info_out("%s %s:%hu %s", head, ep.address().to_string().data(), ep.port(), tail);
 	}
 
 	void show_info(const char* head, const char* tail, const boost::system::error_code& ec) const
@@ -114,7 +114,7 @@ public:
 		boost::system::error_code ec2;
 		auto ep = ST_THIS lowest_layer().local_endpoint(ec2);
 		if (!ec2)
-			unified_out::info_out("%s %s:%hu %s (%d %s)", head, ep.address().to_string().c_str(), ep.port(), tail, ec.value(), ec.message().data());
+			unified_out::info_out("%s %s:%hu %s (%d %s)", head, ep.address().to_string().data(), ep.port(), tail, ec.value(), ec.message().data());
 	}
 
 protected:
@@ -144,7 +144,7 @@ protected:
 		show_info("client link:", "broken/been shut down", ec);
 
 		force_shutdown(ST_THIS is_shutting_down() ? reconnecting : prepare_reconnect(ec) >= 0);
-		ST_THIS shutdown_state = 0;
+		ST_THIS shutdown_state = super::shutdown_states::NONE;
 
 		if (reconnecting)
 			ST_THIS start();
@@ -178,7 +178,7 @@ private:
 	{
 		assert(TIMER_ASYNC_SHUTDOWN == id);
 
-		if (2 == ST_THIS shutdown_state)
+		if (super::shutdown_states::GRACEFUL == ST_THIS shutdown_state)
 		{
 			--loop_num;
 			if (loop_num > 0)

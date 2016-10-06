@@ -59,6 +59,7 @@ static bool check_msg;
 //    but must not in service threads, please note.
 //
 //2. for sender, if responses are available (like pingpong test), send msgs in on_msg()/on_msg_handle().
+//    this will reduce IO throughput, because SOCKET's sliding window is not fully used, pleae note.
 //
 //test_client chose method #1
 
@@ -114,7 +115,7 @@ protected:
 	//msg handling end
 
 #ifdef ST_ASIO_WANT_MSG_SEND_NOTIFY
-	//congestion control, method #1, need peer's cooperation.
+	//congestion control, method #1, the peer needs its own congestion control too.
 	virtual void on_msg_send(in_msg_type& msg)
 	{
 		if (0 == --msg_num)
@@ -397,7 +398,7 @@ int main(int argc, const char* argv[])
 				{
 					memcpy(buff, &i, sizeof(size_t)); //seq
 
-					//congestion control, method #1, need peer's cooperation.
+					//congestion control, method #1, the peer needs its own congestion control too.
 					switch (model)
 					{
 					case 0:

@@ -87,6 +87,8 @@ public:
 	auto_buffer(auto_buffer&& other) : buffer(other.buffer) {other.buffer = nullptr;}
 	~auto_buffer() {clear();}
 
+	auto_buffer& operator=(auto_buffer&& other) {clear(); swap(other); return *this;}
+
 	buffer_type raw_buffer() const {return buffer;}
 	void raw_buffer(buffer_type _buffer) {buffer = _buffer;}
 
@@ -119,6 +121,8 @@ public:
 	shared_buffer(shared_buffer&& other) : buffer(std::move(other.buffer)) {}
 	const shared_buffer& operator=(const shared_buffer& other) {buffer = other.buffer; return *this;}
 	~shared_buffer() {clear();}
+
+	shared_buffer& operator=(shared_buffer&& other) {clear(); swap(other); return *this;}
 
 	buffer_type raw_buffer() const {return buffer;}
 	void raw_buffer(buffer_ctype _buffer) {buffer = _buffer;}
@@ -167,6 +171,97 @@ public:
 	using typename i_packer<MsgType>::msg_ctype;
 
 	virtual msg_type pack_msg(const char* const pstr[], const size_t len[], size_t num, bool native = false) {assert(false); return msg_type();}
+};
+
+//keep size() constant time would better, because we invoke it frequently, so don't use std::list(gcc)
+template<typename T>
+class message_queue_ : public boost::container::list<T>
+{
+public:
+	typedef boost::container::list<T> super;
+	typedef message_queue_<T> me;
+	typedef boost::lock_guard<me> lock_guard;
+
+	message_queue_() {}
+	message_queue_(size_t) {}
+
+	//not thread-safe
+	void clear() {super::clear();}
+	void swap(me& other) {super::swap(other);}
+
+	//lockable
+	void lock() {mutex.lock();}
+	void unlock() {mutex.unlock();}
+
+	bool idle() {boost::unique_lock<boost::shared_mutex> lock(mutex, boost::try_to_lock); return lock.owns_lock();}
+
+	bool enqueue(const T& item) {lock_guard lock(*this); return enqueue_(item);}
+	bool enqueue(T&& item) {lock_guard lock(*this); return enqueue_(std::move(item));}
+	bool try_enqueue(const T& item) {lock_guard lock(*this); return try_enqueue_(item);}
+	bool try_enqueue(T&& item) {lock_guard lock(*this); return try_enqueue_(std::move(item));}
+	bool try_dequeue(T& item) {lock_guard lock(*this); return try_dequeue_(item);}
+
+	bool enqueue_(const T& item) {ST_THIS push_back(item); return true;}
+	bool enqueue_(T&& item) {ST_THIS push_back(std::move(item)); return true;}
+	bool try_enqueue_(const T& item) {return enqueue_(item);}
+	bool try_enqueue_(T&& item) {return enqueue_(std::move(item));}
+	bool try_dequeue_(T& item) {if (ST_THIS empty()) return false; item.swap(ST_THIS front()); ST_THIS pop_front(); return true;}
+
+private:
+	boost::shared_mutex mutex;
+};
+
+template<typename T>
+class message_queue : public message_queue_<T>
+{
+public:
+	typedef message_queue_<T> super;
+
+	message_queue() {}
+	message_queue(size_t size) : super(size) {}
+
+	//it's not thread safe for 'other', please note.
+	size_t move_items_in(typename super::me& other, size_t max_size = ASCS_MAX_MSG_NUM)
+	{
+		typename super::lock_guard lock(*this);
+		auto cur_size = ST_THIS size();
+		if (cur_size >= max_size)
+			return 0;
+
+		size_t num = 0;
+		while (cur_size < max_size)
+		{
+			T item;
+			if (!other.try_dequeue_(item)) //not thread safe for 'other', because we called 'try_dequeue_'
+				break;
+
+			ST_THIS enqueue_(std::move(item));
+			++cur_size;
+			++num;
+		}
+
+		return num;
+	}
+
+	//it's no thread safe for 'other', please note.
+	size_t move_items_in(boost::container::list<T>& other, size_t max_size = ASCS_MAX_MSG_NUM)
+	{
+		typename super::lock_guard lock(*this);
+		auto cur_size = ST_THIS size();
+		if (cur_size >= max_size)
+			return 0;
+
+		size_t num = 0;
+		while (cur_size < max_size && !other.empty())
+		{
+			ST_THIS enqueue_(std::move(other.front()));
+			other.pop_front();
+			++cur_size;
+			++num;
+		}
+
+		return num;
+	}
 };
 
 //unpacker concept
@@ -306,32 +401,9 @@ template<typename _Predicate> void NAME(const _Predicate& __pred) const {for (au
 	boost::this_thread::sleep(boost::get_system_time() + boost::posix_time::milliseconds(50)); \
 }
 
-#define GET_PENDING_MSG_NUM(FUNNAME, CAN, MUTEX) size_t FUNNAME() {boost::shared_lock<boost::shared_mutex> lock(MUTEX); return CAN.size();}
-#define PEEK_FIRST_PENDING_MSG(FUNNAME, CAN, MUTEX, MSGTYPE) \
-void FUNNAME(MSGTYPE& msg) \
-{ \
-	msg.clear(); \
-	boost::shared_lock<boost::shared_mutex> lock(MUTEX); \
-	if (!CAN.empty()) \
-		msg = CAN.front(); \
-}
-#define POP_FIRST_PENDING_MSG(FUNNAME, CAN, MUTEX, MSGTYPE) \
-void FUNNAME(MSGTYPE& msg) \
-{ \
-	msg.clear(); \
-	boost::unique_lock<boost::shared_mutex> lock(MUTEX); \
-	if (!CAN.empty()) \
-	{ \
-		msg.swap(CAN.front()); \
-		CAN.pop_front(); \
-	} \
-}
-#define POP_ALL_PENDING_MSG(FUNNAME, CAN, MUTEX, CANTYPE) \
-void FUNNAME(CANTYPE& msg_list) \
-{ \
-	boost::unique_lock<boost::shared_mutex> lock(MUTEX); \
-	msg_list.splice(msg_list.end(), CAN); \
-}
+#define GET_PENDING_MSG_NUM(FUNNAME, CAN) size_t FUNNAME() const {return CAN.size();}
+#define POP_FIRST_PENDING_MSG(FUNNAME, CAN, MSGTYPE) void FUNNAME(MSGTYPE& msg) {msg.clear(); CAN.try_dequeue(msg);}
+#define POP_ALL_PENDING_MSG(FUNNAME, CAN, CANTYPE) void FUNNAME(CANTYPE& msg_queue) {msg_queue.clear(); CAN.swap(msg_queue);}
 
 ///////////////////////////////////////////////////
 //TCP msg sending interface
@@ -341,10 +413,7 @@ TYPE FUNNAME(const std::string& str, bool can_overflow = false) {return FUNNAME(
 
 #define TCP_SEND_MSG(FUNNAME, NATIVE) \
 bool FUNNAME(const char* const pstr[], const size_t len[], size_t num, bool can_overflow = false) \
-{ \
-	boost::unique_lock<boost::shared_mutex> lock(ST_THIS send_msg_buffer_mutex); \
-	return (can_overflow || ST_THIS send_msg_buffer.size() < ST_ASIO_MAX_MSG_NUM) ? ST_THIS do_direct_send_msg(ST_THIS packer_->pack_msg(pstr, len, num, NATIVE)) : false; \
-} \
+	{return can_overflow || ST_THIS is_send_buffer_available() ? ST_THIS do_direct_send_msg(ST_THIS packer_->pack_msg(pstr, len, num, NATIVE)) : false;} \
 TCP_SEND_MSG_CALL_SWITCH(FUNNAME, bool)
 
 //guarantee send msg successfully even if can_overflow equal to false, success at here just means putting the msg into st_tcp_socket's send buffer successfully
@@ -369,8 +438,7 @@ TYPE FUNNAME(const boost::asio::ip::udp::endpoint& peer_addr, const std::string&
 #define UDP_SEND_MSG(FUNNAME, NATIVE) \
 bool FUNNAME(const boost::asio::ip::udp::endpoint& peer_addr, const char* const pstr[], const size_t len[], size_t num, bool can_overflow = false) \
 { \
-	boost::unique_lock<boost::shared_mutex> lock(ST_THIS send_msg_buffer_mutex); \
-	if (can_overflow || ST_THIS send_msg_buffer.size() < ST_ASIO_MAX_MSG_NUM) \
+	if (can_overflow || ST_THIS is_send_buffer_available()) \
 	{ \
 		in_msg_type msg(peer_addr, ST_THIS packer_->pack_msg(pstr, len, num, NATIVE)); \
 		return ST_THIS do_direct_send_msg(std::move(msg)); \
