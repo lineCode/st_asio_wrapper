@@ -97,7 +97,7 @@ protected:
 		if (!ST_THIS is_shutting_down() && authorized_)
 		{
 			ST_THIS show_info("ssl client link:", "been shut down.");
-			ST_THIS shutdown_state = 2;
+			ST_THIS shutdown_state = super::shutdown_states::GRACEFUL;
 			ST_THIS reconnecting = false;
 			authorized_ = false;
 
