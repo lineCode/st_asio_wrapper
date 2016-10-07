@@ -402,7 +402,7 @@ TYPE FUNNAME(const std::string& str, bool can_overflow = false) {return FUNNAME(
 #define TCP_SEND_MSG(FUNNAME, NATIVE) \
 bool FUNNAME(const char* const pstr[], const size_t len[], size_t num, bool can_overflow = false) \
 { \
-	if (can_overflow || is_send_buffer_available()) \
+	if (can_overflow || ST_THIS is_send_buffer_available()) \
 	{ \
 		in_msg_type msg; \
 		return ST_THIS packer_->pack_msg(msg, pstr, len, num, NATIVE) ? ST_THIS do_direct_send_msg(msg) : false; \
