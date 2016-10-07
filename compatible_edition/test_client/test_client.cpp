@@ -57,6 +57,7 @@ static bool check_msg;
 //    but must not in service threads, please note.
 //
 //2. for sender, if responses are available (like pingpong test), send msgs in on_msg()/on_msg_handle().
+//    this will reduce IO throughput, because SOCKET's sliding window is not fully used, pleae note.
 //
 //test_client chose method #1
 
@@ -112,7 +113,7 @@ protected:
 	//msg handling end
 
 #ifdef ST_ASIO_WANT_MSG_SEND_NOTIFY
-	//congestion control, method #1, need peer's cooperation.
+	//congestion control, method #1, the peer needs its own congestion control too.
 	virtual void on_msg_send(in_msg_type& msg)
 	{
 		if (0 == --msg_num)
@@ -267,6 +268,9 @@ int main(int argc, const char* argv[])
 #ifdef ST_ASIO_CLEAR_OBJECT_INTERVAL
 	if (1 == thread_num)
 		++thread_num;
+	//add one thread will seriously impact IO throughput when doing performance benchmark, this is because the business logic is very simple (send original messages back,
+	//or just add up total message size), under this scenario, just one service thread without receiving buffer will obtain the best IO throughput.
+	//the server has such behavior too.
 #endif
 
 	sp.start_service(thread_num);
@@ -404,7 +408,7 @@ int main(int argc, const char* argv[])
 				{
 					memcpy(buff, &i, sizeof(size_t)); //seq
 
-					//congestion control, method #1, need peer's cooperation.
+					//congestion control, method #1, the peer needs its own congestion control too.
 					switch (model)
 					{
 					case 0:

@@ -169,7 +169,7 @@ public:
 	test_socket::statistic get_statistic()
 	{
 		test_socket::statistic stat;
-		do_something_to_all([&stat](object_ctype& item) {stat += item->get_statistic(); });
+		do_something_to_all([&stat](object_ctype& item) {stat += item->get_statistic();});
 
 		return stat;
 	}
@@ -261,6 +261,9 @@ int main(int argc, const char* argv[])
 #ifdef ST_ASIO_CLEAR_OBJECT_INTERVAL
 	if (1 == thread_num)
 		++thread_num;
+	//add one thread will seriously impact IO throughput when doing performance benchmark, this is because the business logic is very simple (send original messages back,
+	//or just add up total message size), under this scenario, just one service thread without receiving buffer will obtain the best IO throughput.
+	//the server has such behavior too.
 #endif
 
 	sp.start_service(thread_num);

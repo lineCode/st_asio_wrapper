@@ -41,7 +41,7 @@ public:
 	void disconnect() {force_shutdown();}
 	void force_shutdown()
 	{
-		if (1 != ST_THIS shutdown_state)
+		if (super::FORCE != ST_THIS shutdown_state)
 			show_info("server link:", "been shut down.");
 
 		super::force_shutdown();
@@ -65,7 +65,7 @@ public:
 		boost::system::error_code ec;
 		BOOST_AUTO(ep, ST_THIS lowest_layer().remote_endpoint(ec));
 		if (!ec)
-			unified_out::info_out("%s %s:%hu %s", head, ep.address().to_string().c_str(), ep.port(), tail);
+			unified_out::info_out("%s %s:%hu %s", head, ep.address().to_string().data(), ep.port(), tail);
 	}
 
 	void show_info(const char* head, const char* tail, const boost::system::error_code& ec) const
@@ -73,7 +73,7 @@ public:
 		boost::system::error_code ec2;
 		BOOST_AUTO(ep, ST_THIS lowest_layer().remote_endpoint(ec2));
 		if (!ec2)
-			unified_out::info_out("%s %s:%hu %s (%d %s)", head, ep.address().to_string().c_str(), ep.port(), tail, ec.value(), ec.message().data());
+			unified_out::info_out("%s %s:%hu %s (%d %s)", head, ep.address().to_string().data(), ep.port(), tail, ec.value(), ec.message().data());
 	}
 
 protected:
@@ -99,7 +99,7 @@ protected:
 #else
 		server.del_client(boost::dynamic_pointer_cast<st_timer>(ST_THIS shared_from_this()));
 #endif
-		ST_THIS shutdown_state = 0;
+		ST_THIS shutdown_state = super::NONE;
 	}
 
 private:
@@ -107,7 +107,7 @@ private:
 	{
 		assert(TIMER_ASYNC_SHUTDOWN == id);
 
-		if (2 == ST_THIS shutdown_state)
+		if (super::GRACEFUL == ST_THIS shutdown_state)
 		{
 			--loop_num;
 			if (loop_num > 0)
