@@ -69,7 +69,7 @@
  * 1. On boost-1.49, compatible edition's st_object::is_last_async_call() cannot work properly, it is because before asio calling any callbacks, it copied
  *    the callback(not a good behaviour), this cause st_object::is_last_async_call() never return true, so objects in st_object_pool can never be reused or freed.
  *    To fix this issue, we must not define ST_ASIO_ENHANCED_STABILITY macro.
- *    BTW, boost-1.61 and standard editon even with boost-1.49 don't have such issue, I'm not sure in which edition, asio fixed this defect,
+ *    BTW, boost-1.61 and standard edition even with boost-1.49 don't have such issue, I'm not sure in which edition, asio fixed this defect,
  *    if you have other versions, please help me to find out the minimum version via the following steps:
  *     1. Compile demo asio_server and test_client;
  *     2. Run asio_server and test_client without any parameters;
