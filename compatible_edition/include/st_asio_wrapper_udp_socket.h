@@ -231,7 +231,8 @@ private:
 		if (!do_send_msg())
 		{
 			ST_THIS sending = false;
-			ST_THIS send_msg(); //just make sure no pending msgs
+			if (!ST_THIS send_msg_buffer.empty())
+				ST_THIS send_msg(); //just make sure no pending msgs
 		}
 	}
 

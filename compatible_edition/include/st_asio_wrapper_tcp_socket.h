@@ -244,10 +244,13 @@ private:
 			ST_THIS on_send_error(ec);
 		last_send_msg.clear();
 
-		if (ec || !do_send_msg()) //send msg sequentially, which means second sending only after first sending success
+		if (ec)
+			ST_THIS sending = false;
+		else if (!do_send_msg()) //send msg sequentially, which means second sending only after first sending success
 		{
 			ST_THIS sending = false;
-			ST_THIS send_msg(); //just make sure no pending msgs
+			if (!ST_THIS send_msg_buffer.empty())
+				ST_THIS send_msg(); //just make sure no pending msgs
 		}
 	}
 
