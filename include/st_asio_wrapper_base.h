@@ -173,17 +173,18 @@ public:
 	virtual msg_type pack_msg(const char* const pstr[], const size_t len[], size_t num, bool native = false) {assert(false); return msg_type();}
 };
 
+#ifndef ST_ASIO_USE_CUSTOM_QUEUE //to use your personal queue, its name must be 'lock_quque'
 //keep size() constant time would better, because we invoke it frequently, so don't use std::list(gcc)
 template<typename T>
-class message_queue_ : public boost::container::list<T>
+class lock_queue_ : public boost::container::list<T>
 {
 public:
 	typedef boost::container::list<T> super;
-	typedef message_queue_<T> me;
+	typedef lock_queue_<T> me;
 	typedef boost::lock_guard<me> lock_guard;
 
-	message_queue_() {}
-	message_queue_(size_t) {}
+	lock_queue_() {}
+	lock_queue_(size_t) {}
 
 	//not thread-safe
 	void clear() {super::clear();}
@@ -212,13 +213,13 @@ private:
 };
 
 template<typename T>
-class message_queue : public message_queue_<T>
+class lock_queue : public lock_queue_<T>
 {
 public:
-	typedef message_queue_<T> super;
+	typedef lock_queue_<T> super;
 
-	message_queue() {}
-	message_queue(size_t size) : super(size) {}
+	lock_queue() {}
+	lock_queue(size_t size) : super(size) {}
 
 	//it's not thread safe for 'other', please note.
 	size_t move_items_in(typename super::me& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
@@ -263,6 +264,7 @@ public:
 		return num;
 	}
 };
+#endif
 
 //unpacker concept
 template<typename MsgType>

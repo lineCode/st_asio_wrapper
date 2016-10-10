@@ -158,8 +158,8 @@ protected:
 
 	typedef obj_with_begin_time<InMsgType> in_msg;
 	typedef obj_with_begin_time<OutMsgType> out_msg;
-	typedef message_queue<in_msg> in_container_type;
-	typedef message_queue<out_msg> out_container_type;
+	typedef lock_queue<in_msg> in_container_type;
+	typedef lock_queue<out_msg> out_container_type;
 
 	static const tid TIMER_BEGIN = st_timer::TIMER_END;
 	static const tid TIMER_HANDLE_MSG = TIMER_BEGIN;
