@@ -173,70 +173,124 @@ public:
 	virtual msg_type pack_msg(const char* const pstr[], const size_t len[], size_t num, bool native = false) {assert(false); return msg_type();}
 };
 
-#ifndef ST_ASIO_USE_CUSTOM_QUEUE //to use your personal queue, its name must be 'lock_quque'
-//keep size() constant time would better, because we invoke it frequently, so don't use std::list(gcc)
-template<typename T>
-class lock_queue_ : public boost::container::list<T>
+class dummy_lockable
 {
 public:
-	typedef boost::container::list<T> super;
-	typedef lock_queue_<T> me;
-	typedef boost::lock_guard<me> lock_guard;
+	typedef boost::lock_guard<dummy_lockable> lock_guard;
 
-	lock_queue_() {}
-	lock_queue_(size_t) {}
+	//lockable, dummy
+	void lock() const {}
+	void unlock() const {}
+	bool idle() const {return true;} //locked or not
+};
 
-	//not thread-safe
-	void clear() {super::clear();}
-	void swap(me& other) {super::swap(other);}
+class lockable
+{
+public:
+	typedef boost::lock_guard<lockable> lock_guard;
 
 	//lockable
 	void lock() {mutex.lock();}
 	void unlock() {mutex.unlock();}
-
-	bool idle() {boost::unique_lock<boost::shared_mutex> lock(mutex, boost::try_to_lock); return lock.owns_lock();}
-
-	bool enqueue(const T& item) {lock_guard lock(*this); return enqueue_(item);}
-	bool enqueue(T&& item) {lock_guard lock(*this); return enqueue_(std::move(item));}
-	bool try_enqueue(const T& item) {lock_guard lock(*this); return try_enqueue_(item);}
-	bool try_enqueue(T&& item) {lock_guard lock(*this); return try_enqueue_(std::move(item));}
-	bool try_dequeue(T& item) {lock_guard lock(*this); return try_dequeue_(item);}
-
-	bool enqueue_(const T& item) {ST_THIS push_back(item); return true;}
-	bool enqueue_(T&& item) {ST_THIS push_back(std::move(item)); return true;}
-	bool try_enqueue_(const T& item) {return enqueue_(item);}
-	bool try_enqueue_(T&& item) {return enqueue_(std::move(item));}
-	bool try_dequeue_(T& item) {if (ST_THIS empty()) return false; item.swap(ST_THIS front()); ST_THIS pop_front(); return true;}
+	bool idle() {boost::unique_lock<boost::shared_mutex> lock(mutex, boost::try_to_lock); return lock.owns_lock();} //locked or not
 
 private:
 	boost::shared_mutex mutex;
 };
 
-template<typename T>
-class lock_queue : public lock_queue_<T>
+//Container must at least has the following functions:
+// Container() constructor
+// size
+// empty
+// clear
+// swap
+// push_back(const T& item)
+// push_back(T&& item)
+// front
+// pop_front
+//
+//totally not thread safe.
+template<typename T, typename Container>
+class non_lock_queue : public Container, public dummy_lockable
 {
 public:
-	typedef lock_queue_<T> super;
+	typedef T data_type;
+	typedef Container super;
+	typedef non_lock_queue<T, Container> me;
+
+	non_lock_queue() {}
+	non_lock_queue(size_t) {}
+
+	void clear() {super::clear();}
+	void swap(me& other) {super::swap(other);}
+
+	bool enqueue(const T& item) {return enqueue_(item);}
+	bool enqueue(T&& item) {return enqueue_(std::move(item));}
+	bool try_dequeue(T& item) {return try_dequeue_(item);}
+
+	bool enqueue_(const T& item) {this->push_back(item); return true;}
+	bool enqueue_(T&& item) {this->push_back(std::move(item)); return true;}
+	bool try_dequeue_(T& item) {if (this->empty()) return false; item.swap(this->front()); this->pop_front(); return true;}
+};
+
+//Container must at least has the following functions:
+// Container() constructor
+// size
+// empty
+// clear
+// swap
+// push_back(const T& item)
+// push_back(T&& item)
+// front
+// pop_front
+template<typename T, typename Container>
+class lock_queue : public Container, public lockable
+{
+public:
+	typedef T data_type;
+	typedef Container super;
+	typedef lock_queue<T, Container> me;
 
 	lock_queue() {}
-	lock_queue(size_t size) : super(size) {}
+	lock_queue(size_t) {}
 
-	//it's not thread safe for 'other', please note.
-	size_t move_items_in(typename super::me& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
+	//not thread-safe
+	void clear() {super::clear();}
+	void swap(me& other) {super::swap(other);}
+
+	bool enqueue(const T& item) {lock_guard lock(*this); return enqueue_(item);}
+	bool enqueue(T&& item) {lock_guard lock(*this); return enqueue_(std::move(item));}
+	bool try_dequeue(T& item) {lock_guard lock(*this); return try_dequeue_(item);}
+
+	bool enqueue_(const T& item) {this->push_back(item); return true;}
+	bool enqueue_(T&& item) {this->push_back(std::move(item)); return true;}
+	bool try_dequeue_(T& item) {if (this->empty()) return false; item.swap(this->front()); this->pop_front(); return true;}
+};
+
+template<typename T>
+class queue : public T
+{
+public:
+	queue() {}
+	queue(size_t size) : T(size) {}
+
+	//it's not thread safe for 'other', please note. for this queue, depends on 'T'
+	size_t move_items_in(typename T::me& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
 	{
-		typename super::lock_guard lock(*this);
-		auto cur_size = ST_THIS size();
+		if (other.empty())
+			return 0;
+
+		auto cur_size = this->size();
 		if (cur_size >= max_size)
 			return 0;
 
 		size_t num = 0;
-		while (cur_size < max_size)
-		{
-			T item;
-			if (!other.try_dequeue_(item)) //not thread safe for 'other', because we called 'try_dequeue_'
-				break;
+		typename T::data_type item;
 
-			ST_THIS enqueue_(std::move(item));
+		typename T::lock_guard lock(*this);
+		while (cur_size < max_size && other.try_dequeue_(item)) //size not controlled accurately
+		{
+			this->enqueue_(std::move(item));
 			++cur_size;
 			++num;
 		}
@@ -244,18 +298,22 @@ public:
 		return num;
 	}
 
-	//it's no thread safe for 'other', please note.
-	size_t move_items_in(boost::container::list<T>& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
+	//it's not thread safe for 'other', please note. for this queue, depends on 'T'
+	size_t move_items_in(boost::container::list<typename T::data_type>& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
 	{
-		typename super::lock_guard lock(*this);
-		auto cur_size = ST_THIS size();
+		if (other.empty())
+			return 0;
+
+		auto cur_size = this->size();
 		if (cur_size >= max_size)
 			return 0;
 
 		size_t num = 0;
-		while (cur_size < max_size && !other.empty())
+
+		typename T::lock_guard lock(*this);
+		while (cur_size < max_size && !other.empty()) //size not controlled accurately
 		{
-			ST_THIS enqueue_(std::move(other.front()));
+			this->enqueue_(std::move(other.front()));
 			other.pop_front();
 			++cur_size;
 			++num;
@@ -264,7 +322,6 @@ public:
 		return num;
 	}
 };
-#endif
 
 //unpacker concept
 template<typename MsgType>

@@ -10,6 +10,9 @@
 //#define ST_ASIO_CLEAR_OBJECT_INTERVAL	1
 //#define ST_ASIO_WANT_MSG_SEND_NOTIFY
 #define ST_ASIO_FULL_STATISTIC //full statistic will slightly impact efficiency.
+#ifdef ST_ASIO_WANT_MSG_SEND_NOTIFY
+#define ST_ASIO_INPUT_QUEUE non_lock_queue //we will never operate sending buffer concurrently, so need no locks.
+#endif
 //configuration
 
 //use the following macro to control the type of packer and unpacker
@@ -447,6 +450,7 @@ int main(int argc, const char* argv[])
 #undef ST_ASIO_CLEAR_OBJECT_INTERVAL
 #undef ST_ASIO_WANT_MSG_SEND_NOTIFY
 #undef ST_ASIO_FULL_STATISTIC
+#undef ST_ASIO_INPUT_QUEUE
 #undef ST_ASIO_DEFAULT_PACKER
 #undef ST_ASIO_DEFAULT_UNPACKER
 //restore configuration

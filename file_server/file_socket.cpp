@@ -5,6 +5,11 @@
 #define ST_ASIO_CLEAR_OBJECT_INTERVAL	60
 #define ST_ASIO_ENHANCED_STABILITY
 #define ST_ASIO_WANT_MSG_SEND_NOTIFY
+#define ST_ASIO_INPUT_QUEUE non_lock_queue
+//file_server / file_client is a responsive system, before file_server send each message (except talking message,
+//but file_server only receive talking message, not send talking message proactively), the previous message has been
+//sent to file_client, so sending buffer will always be empty, which means we will never operate sending buffer concurrently,
+//so need no locks.
 #define ST_ASIO_DEFAULT_PACKER	replaceable_packer
 //configuration
 
@@ -112,5 +117,6 @@ void file_socket::handle_msg(out_msg_ctype& msg)
 #undef ST_ASIO_CLEAR_OBJECT_INTERVAL
 #undef ST_ASIO_ENHANCED_STABILITY
 #undef ST_ASIO_WANT_MSG_SEND_NOTIFY
+#undef ST_ASIO_INPUT_QUEUE
 #undef ST_ASIO_DEFAULT_PACKER
 //restore configuration

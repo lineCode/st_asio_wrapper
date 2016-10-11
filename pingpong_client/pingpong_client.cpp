@@ -9,6 +9,7 @@
 //#define ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
 //#define ST_ASIO_WANT_MSG_SEND_NOTIFY
 #define ST_ASIO_MSG_BUFFER_SIZE 65536
+#define ST_ASIO_INPUT_QUEUE non_lock_queue //we will never operate sending buffer concurrently, so need no locks.
 #define ST_ASIO_DEFAULT_UNPACKER stream_unpacker //non-protocol
 //configuration
 
@@ -224,5 +225,6 @@ int main(int argc, const char* argv[])
 #undef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
 #undef ST_ASIO_WANT_MSG_SEND_NOTIFY
 #undef ST_ASIO_MSG_BUFFER_SIZE
+#undef ST_ASIO_INPUT_QUEUE
 #undef ST_ASIO_DEFAULT_UNPACKER
 //restore configuration

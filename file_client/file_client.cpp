@@ -4,6 +4,7 @@
 
 //configuration
 #define ST_ASIO_SERVER_PORT		5050
+//we cannot use non_lock_queue, because we also send messages (talking messages) out of ascs::socket::on_msg_send().
 #define ST_ASIO_DEFAULT_UNPACKER replaceable_unpacker
 //configuration
 
