@@ -41,7 +41,9 @@
 namespace st_asio_wrapper
 {
 
-template<typename Socket, typename Packer, typename Unpacker, typename InMsgType, typename OutMsgType>
+template<typename Socket, typename Packer, typename Unpacker, typename InMsgType, typename OutMsgType,
+	template<typename, typename> class InQueue, template<typename> class InContainer,
+	template<typename, typename> class OutQueue, template<typename> class OutContainer>
 class st_socket: public st_timer
 {
 public:
@@ -158,8 +160,8 @@ protected:
 
 	typedef obj_with_begin_time<InMsgType> in_msg;
 	typedef obj_with_begin_time<OutMsgType> out_msg;
-	typedef lock_queue<in_msg> in_container_type;
-	typedef lock_queue<out_msg> out_container_type;
+	typedef InQueue<in_msg, InContainer<in_msg> > in_container_type;
+	typedef OutQueue<out_msg, OutContainer<out_msg> > out_container_type;
 
 	static const tid TIMER_BEGIN = st_timer::TIMER_END;
 	static const tid TIMER_HANDLE_MSG = TIMER_BEGIN;

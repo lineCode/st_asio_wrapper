@@ -22,12 +22,9 @@
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
-#include <boost/thread.hpp>
 #include <boost/smart_ptr.hpp>
-#include <boost/container/list.hpp>
-#include <boost/typeof/typeof.hpp>
 
-#include "st_asio_wrapper.h"
+#include "st_asio_wrapper_container.h"
 
 //the size of the buffer used when receiving msg, must equal to or larger than the biggest msg size,
 //the bigger this buffer is, the more msgs can be received in one time if there are enough msgs buffered in the SOCKET.
@@ -37,12 +34,6 @@
 #define ST_ASIO_MSG_BUFFER_SIZE	4000
 #elif ST_ASIO_MSG_BUFFER_SIZE <= 0
 	#error message buffer size must be bigger than zero.
-#endif
-//msg send and recv buffer's maximum size (list::size()), corresponding buffers are expanded dynamically, which means only allocate memory when needed.
-#ifndef ST_ASIO_MAX_MSG_NUM
-#define ST_ASIO_MAX_MSG_NUM		1024
-#elif ST_ASIO_MAX_MSG_NUM <= 0
-	#error message capacity must be bigger than zero.
 #endif
 
 #if defined _MSC_VER
@@ -170,100 +161,6 @@ public:
 	virtual bool pack_msg(msg_type& msg, const char* const pstr[], const size_t len[], size_t num, bool native = false) {assert(false); return false;}
 };
 
-#ifndef ST_ASIO_USE_CUSTOM_QUEUE //to use your personal queue, its name must be 'lock_quque'
-//keep size() constant time would better, because we invoke it frequently, so don't use std::list(gcc)
-template<typename T>
-class lock_quque_ : public boost::container::list<T>
-{
-public:
-	typedef boost::container::list<T> super;
-	typedef lock_quque_<T> me;
-	typedef boost::lock_guard<me> lock_guard;
-
-	lock_quque_() {}
-	lock_quque_(size_t) {}
-
-	//not thread-safe
-	void clear() {super::clear();}
-	void swap(me& other) {super::swap(other);}
-
-	//lockable
-	void lock() {mutex.lock();}
-	void unlock() {mutex.unlock();}
-
-	bool idle() {boost::unique_lock<boost::shared_mutex> lock(mutex, boost::try_to_lock); return lock.owns_lock();}
-
-	bool enqueue(const T& item) {lock_guard lock(*this); return enqueue_(item);}
-	bool enqueue(T& item) {lock_guard lock(*this); return enqueue_(item);}
-	bool try_enqueue(const T& item) {lock_guard lock(*this); return try_enqueue_(item);}
-	bool try_enqueue(T& item) {lock_guard lock(*this); return try_enqueue_(item);}
-	bool try_dequeue(T& item) {lock_guard lock(*this); return try_dequeue_(item);}
-
-	bool enqueue_(const T& item) {ST_THIS push_back(item); return true;}
-	//after this call, item becomes empty, please note.
-	bool enqueue_(T& item) {ST_THIS resize(ST_THIS size() + 1); ST_THIS back().swap(item); return true;}
-	bool try_enqueue_(const T& item) {return enqueue_(item);}
-	bool try_enqueue_(T& item) {return enqueue_(item);}
-	bool try_dequeue_(T& item) {if (ST_THIS empty()) return false; item.swap(ST_THIS front()); ST_THIS pop_front(); return true;}
-
-private:
-	boost::shared_mutex mutex;
-};
-
-template<typename T>
-class lock_queue : public lock_quque_<T>
-{
-public:
-	typedef lock_quque_<T> super;
-
-	lock_queue() {}
-	lock_queue(size_t size) : super(size) {}
-
-	//it's not thread safe for 'other', please note.
-	size_t move_items_in(typename super::me& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
-	{
-		typename super::lock_guard lock(*this);
-		size_t cur_size = ST_THIS size();
-		if (cur_size >= max_size)
-			return 0;
-
-		size_t num = 0;
-		while (cur_size < max_size)
-		{
-			T item;
-			if (!other.try_dequeue_(item)) //not thread safe for 'other', because we called 'try_dequeue_'
-				break;
-
-			ST_THIS enqueue_(item);
-			++cur_size;
-			++num;
-		}
-
-		return num;
-	}
-
-	//it's no thread safe for 'other', please note.
-	size_t move_items_in(boost::container::list<T>& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
-	{
-		typename super::lock_guard lock(*this);
-		size_t cur_size = ST_THIS size();
-		if (cur_size >= max_size)
-			return 0;
-
-		size_t num = 0;
-		while (cur_size < max_size && !other.empty())
-		{
-			ST_THIS enqueue_(other.front());
-			other.pop_front();
-			++cur_size;
-			++num;
-		}
-
-		return num;
-	}
-};
-#endif
-
 //unpacker concept
 template<typename MsgType>
 class i_unpacker
@@ -334,33 +231,6 @@ void do_something_to_one(_Can& __can, _Mutex& __mutex, const _Predicate& __pred)
 
 template<typename _Can, typename _Predicate>
 void do_something_to_one(_Can& __can, const _Predicate& __pred) {for (BOOST_AUTO(iter, __can.begin()); iter != __can.end(); ++iter) if (__pred(*iter)) break;}
-
-template<typename _Can>
-bool splice_helper(_Can& dest_can, _Can& src_can, size_t max_size = ST_ASIO_MAX_MSG_NUM)
-{
-	size_t size = dest_can.size();
-	if (size < max_size) //dest_can can hold more items.
-	{
-		size = max_size - size; //maximum items this time can handle
-		BOOST_AUTO(begin_iter, src_can.begin()); BOOST_AUTO(end_iter, src_can.end());
-		if (src_can.size() > size) //some items left behind
-		{
-			size_t left_num = src_can.size() - size;
-			if (left_num > size) //find the minimum movement
-				std::advance(end_iter = begin_iter, size);
-			else
-				std::advance(end_iter, -(int) left_num);
-		}
-		else
-			size = src_can.size();
-		//use size to avoid std::distance() call, so, size must correct
-		dest_can.splice(dest_can.end(), src_can, begin_iter, end_iter, size);
-
-		return size > 0;
-	}
-
-	return false;
-}
 
 //member functions, used to do something to any member container(except map and multimap) optionally with any member mutex
 #define DO_SOMETHING_TO_ALL_MUTEX(CAN, MUTEX) DO_SOMETHING_TO_ALL_MUTEX_NAME(do_something_to_all, CAN, MUTEX)

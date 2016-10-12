@@ -26,8 +26,10 @@
 namespace st_asio_wrapper
 {
 
-template <typename Socket, typename Packer, typename Unpacker>
-class st_tcp_socket_base : public st_socket<Socket, Packer, Unpacker, typename Packer::msg_type, typename Unpacker::msg_type>
+template <typename Socket, typename Packer, typename Unpacker,
+	template<typename, typename> class InQueue, template<typename> class InContainer,
+	template<typename, typename> class OutQueue, template<typename> class OutContainer>
+class st_tcp_socket_base : public st_socket<Socket, Packer, Unpacker, typename Packer::msg_type, typename Unpacker::msg_type, InQueue, InContainer, OutQueue, OutContainer>
 {
 public:
 	typedef typename Packer::msg_type in_msg_type;
@@ -36,7 +38,7 @@ public:
 	typedef typename Unpacker::msg_ctype out_msg_ctype;
 
 protected:
-	typedef st_socket<Socket, Packer, Unpacker, typename Packer::msg_type, typename Unpacker::msg_type> super;
+	typedef st_socket<Socket, Packer, Unpacker, typename Packer::msg_type, typename Unpacker::msg_type, InQueue, InContainer, OutQueue, OutContainer> super;
 	using super::TIMER_BEGIN;
 	using super::TIMER_END;
 
