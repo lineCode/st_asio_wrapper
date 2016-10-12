@@ -54,6 +54,56 @@ public:
 	list(size_t size) : super(size) {}
 };
 
+//it's not thread safe for 'other', please note. for this queue, depends on 'Q'
+template<typename Q>
+size_t move_items_in(Q& dest, Q& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
+{
+	if (other.empty())
+		return 0;
+
+	size_t cur_size = dest.size();
+	if (cur_size >= max_size)
+		return 0;
+
+	size_t num = 0;
+	typename Q::data_type item;
+
+	typename Q::lock_guard lock(dest);
+	while (cur_size < max_size && other.try_dequeue_(item)) //size not controlled accurately
+	{
+		enqueue_(item);
+		++cur_size;
+		++num;
+	}
+
+	return num;
+}
+
+//it's not thread safe for 'other', please note. for this queue, depends on 'Q'
+template<typename Q, template <typename> class Q2>
+size_t move_items_in(Q& dest, Q2<typename Q::data_type>& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
+{
+	if (other.empty())
+		return 0;
+
+	size_t cur_size = dest.size();
+	if (cur_size >= max_size)
+		return 0;
+
+	size_t num = 0;
+
+	typename Q::lock_guard lock(dest);
+	while (cur_size < max_size && !other.empty()) //size not controlled accurately
+	{
+		dest.enqueue_(other.front());
+		other.pop_front();
+		++cur_size;
+		++num;
+	}
+
+	return num;
+}
+
 class dummy_lockable
 {
 public:
@@ -113,53 +163,8 @@ public:
 	bool enqueue_(T& item) {this->resize(this->size() + 1); this->back().swap(item); return true;} //after this, item will becomes empty, please note.
 	bool try_dequeue_(T& item) {if (this->empty()) return false; item.swap(this->front()); this->pop_front(); return true;}
 
-	//it's not thread safe for 'other', please note. for this queue, depends on 'T'
-	size_t move_items_in(me& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
-	{
-		if (other.empty())
-			return 0;
-
-		size_t cur_size = this->size();
-		if (cur_size >= max_size)
-			return 0;
-
-		size_t num = 0;
-		T item;
-
-		typename Lockable::lock_guard lock(*this);
-		while (cur_size < max_size && other.try_dequeue_(item)) //size not controlled accurately
-		{
-			enqueue_(item);
-			++cur_size;
-			++num;
-		}
-
-		return num;
-	}
-
-	//it's not thread safe for 'other', please note. for this queue, depends on 'T'
-	size_t move_items_in(boost::container::list<T>& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
-	{
-		if (other.empty())
-			return 0;
-
-		size_t cur_size = this->size();
-		if (cur_size >= max_size)
-			return 0;
-
-		size_t num = 0;
-
-		typename Lockable::lock_guard lock(*this);
-		while (cur_size < max_size && !other.empty()) //size not controlled accurately
-		{
-			enqueue_(other.front());
-			other.pop_front();
-			++cur_size;
-			++num;
-		}
-
-		return num;
-	}
+	friend size_t move_items_in<me>(me&, me&, size_t);
+	friend size_t move_items_in<me>(me&, list<T>&, size_t);
 };
 
 template<typename T, typename Container>
@@ -170,7 +175,7 @@ protected:
 
 public:
 	non_lock_queue() {}
-	non_lock_queue(size_t size) : super::queue(size) {}
+	non_lock_queue(size_t size) : super(size) {}
 };
 
 template<typename T, typename Container>
@@ -181,7 +186,7 @@ protected:
 
 public:
 	lock_queue() {}
-	lock_queue(size_t size) : super::queue(size) {}
+	lock_queue(size_t size) : super(size) {}
 };
 
 template<typename _Can>

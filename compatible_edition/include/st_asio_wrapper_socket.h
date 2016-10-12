@@ -373,7 +373,7 @@ protected:
 
 		if (!temp_buffer.empty())
 		{
-			recv_msg_buffer.move_items_in(temp_buffer, -1);
+			move_items_in(recv_msg_buffer, temp_buffer, -1);
 			dispatch_msg();
 		}
 
@@ -515,7 +515,7 @@ protected:
 
 	in_container_type send_msg_buffer;
 	out_container_type recv_msg_buffer;
-	boost::container::list<out_msg> temp_msg_buffer;
+	list<out_msg> temp_msg_buffer;
 	//st_socket will invoke handle_msg() when got some msgs. if these msgs can't be pushed into recv_msg_buffer because of:
 	// 1. msg dispatching suspended;
 	// 2. congestion control opened;
