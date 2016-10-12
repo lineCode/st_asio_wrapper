@@ -110,13 +110,3 @@ void file_socket::handle_msg(out_msg_ctype& msg)
 		break;
 	}
 }
-
-//restore configuration
-#undef ST_ASIO_SERVER_PORT
-#undef ST_ASIO_ASYNC_ACCEPT_NUM
-#undef ST_ASIO_CLEAR_OBJECT_INTERVAL
-#undef ST_ASIO_ENHANCED_STABILITY
-#undef ST_ASIO_WANT_MSG_SEND_NOTIFY
-#undef ST_ASIO_INPUT_QUEUE
-#undef ST_ASIO_DEFAULT_PACKER
-//restore configuration

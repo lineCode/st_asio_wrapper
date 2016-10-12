@@ -139,12 +139,3 @@ int main(int argc, const char* argv[])
 
 	return 0;
 }
-
-//restore configuration
-#undef ST_ASIO_SERVER_PORT
-#undef ST_ASIO_ASYNC_ACCEPT_NUM
-#undef ST_ASIO_REUSE_OBJECT
-#undef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
-#undef ST_ASIO_MSG_BUFFER_SIZE
-#undef ST_ASIO_DEFAULT_UNPACKER
-//restore configuration

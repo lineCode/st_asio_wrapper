@@ -1,5 +1,5 @@
 /*
- * st_asio_wrapper_verification.h
+ * st_asio_wrapper.h
  *
  *  Created on: 2012-10-21
  *      Author: youngwolf
@@ -80,21 +80,30 @@
  * 2016.10.8	version 1.3.0
  * Drop original congestion control (because it cannot totally resolve dead loop) and add a semi-automatic congestion control.
  * Demonstrate how to use the new semi-automatic congestion control (asio_server, test_client, pingpong_server and pingpong_client).
- * Drop post_msg_buffer and corresponding functions (like post_msg()) and timer (ascs::socket::TIMER_HANDLE_POST_BUFFER).
+ * Drop post_msg_buffer and corresponding functions (like post_msg()) and timer (st_socket::TIMER_HANDLE_POST_BUFFER).
  * Optimize locks on message sending and dispatching.
  * Add enum shutdown_states.
- * ascs::timer now can be used independently.
- * Add a new type ascs::st_timer::tid to represent timer ID.
+ * st_timer now can be used independently.
+ * Add a new type st_timer::tid to represent timer ID.
  * Add a new packer--fixed_length_packer.
  * Add a new class--message_queue.
+ *
+ * 2016.10.16	version 1.3.1
+ * Support non-lock queue, it's totally not thread safe and lock-free, it can improve IO throughput with particular business.
+ * Demonstrate how and when to use non-lock queue as the input and output message buffer.
+ * Queues (and their internal containers) used as input and output message buffer are now configurable (by macros or template arguments).
+ * New macros--ST_ASIO_INPUT_QUEUE, ST_ASIO_INPUT_CONTAINER, ST_ASIO_OUTPUT_QUEUE and ST_ASIO_OUTPUT_CONTAINER.
+ * In contrast to non_lock_queue, rename message_queue to lock_queue.
+ * Move container related classes and functions from st_asio_wrapper_base.h to st_asio_wrapper_container.h.
+ * Improve efficiency in scenarios of low throughput like pingpong test.
  *
  */
 
 #ifndef ST_ASIO_WRAPPER_H_
 #define ST_ASIO_WRAPPER_H_
 
-#define ST_ASIO_WRAPPER_VER		10300	//[x]xyyzz -> [x]x.[y]y.[z]z
-#define ST_ASIO_WRAPPER_VERSION	"1.3.0"
+#define ST_ASIO_WRAPPER_VER		10301	//[x]xyyzz -> [x]x.[y]y.[z]z
+#define ST_ASIO_WRAPPER_VERSION	"1.3.1"
 
 #ifdef _MSC_VER
 	static_assert(_MSC_VER >= 1600, "st_asio_wrapper must be compiled with Visual C++ 10.0 or higher.");

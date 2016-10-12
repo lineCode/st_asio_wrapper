@@ -96,12 +96,3 @@ int main(int argc, const char* argv[])
 
 	return 0;
 }
-
-//restore configuration
-#undef ST_ASIO_SERVER_PORT
-#undef ST_ASIO_ASYNC_ACCEPT_NUM
-#undef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
-#undef ST_ASIO_ENHANCED_STABILITY
-#undef ST_ASIO_DEFAULT_PACKER
-#undef ST_ASIO_DEFAULT_UNPACKER
-//restore configuration

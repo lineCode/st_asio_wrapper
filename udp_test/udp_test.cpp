@@ -50,8 +50,3 @@ int main(int argc, const char* argv[])
 
 	return 0;
 }
-
-//restore configuration
-#undef ST_ASIO_DEFAULT_PACKER
-#undef ST_ASIO_DEFAULT_UNPACKER
-//restore configuration

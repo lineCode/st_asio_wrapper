@@ -132,9 +132,7 @@ protected:
 		++send_index;
 		memcpy(pstr, &send_index, sizeof(size_t)); //seq
 
-		send_msg(pstr, msg_len);
-		//this invocation has no chance to fail (by insufficient sending buffer), even can_overflow is false
-		//this is because here is the only place that will send msgs and here also means the receiving buffer at least can hold one more msg.
+		send_msg(pstr, msg_len, true);
 	}
 #endif
 
@@ -236,6 +234,8 @@ int main(int argc, const char* argv[])
 
 	st_service_pump sp;
 	test_client client(sp);
+	//test_client means to cooperate with echo server while doing performance test, it will not send msgs back as echo server does,
+	//otherwise, dead loop will occur, network resource will be exhausted.
 
 //	argv[2] = "::1" //ipv6
 //	argv[2] = "127.0.0.1" //ipv4
@@ -442,15 +442,3 @@ int main(int argc, const char* argv[])
 
     return 0;
 }
-
-//restore configuration
-#undef ST_ASIO_SERVER_PORT
-#undef ST_ASIO_REUSE_OBJECT
-#undef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
-#undef ST_ASIO_CLEAR_OBJECT_INTERVAL
-#undef ST_ASIO_WANT_MSG_SEND_NOTIFY
-#undef ST_ASIO_FULL_STATISTIC
-#undef ST_ASIO_INPUT_QUEUE
-#undef ST_ASIO_DEFAULT_PACKER
-#undef ST_ASIO_DEFAULT_UNPACKER
-//restore configuration

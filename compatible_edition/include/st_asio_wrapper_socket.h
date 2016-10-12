@@ -371,11 +371,8 @@ protected:
 		temp_buffer.swap(temp_msg_buffer);
 #endif
 
-		if (!temp_buffer.empty())
-		{
-			move_items_in(recv_msg_buffer, temp_buffer, -1);
+		if (move_items_in(recv_msg_buffer, temp_buffer, -1) > 0)
 			dispatch_msg();
-		}
 
 		if (temp_msg_buffer.empty() && recv_msg_buffer.size() < ST_ASIO_MAX_MSG_NUM)
 			do_recv_msg(); //receive msg sequentially, which means second receiving only after first receiving success
@@ -515,7 +512,7 @@ protected:
 
 	in_container_type send_msg_buffer;
 	out_container_type recv_msg_buffer;
-	list<out_msg> temp_msg_buffer;
+	boost::container::list<out_msg> temp_msg_buffer;
 	//st_socket will invoke handle_msg() when got some msgs. if these msgs can't be pushed into recv_msg_buffer because of:
 	// 1. msg dispatching suspended;
 	// 2. congestion control opened;

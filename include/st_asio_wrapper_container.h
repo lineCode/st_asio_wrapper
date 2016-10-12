@@ -1,5 +1,5 @@
 /*
- * container.h
+ * st_asio_wrapper_container.h
  *
  *  Created on: 2016-10-12
  *      Author: youngwolf
@@ -53,56 +53,6 @@ public:
 	list() {}
 	list(size_t size) : super(size) {}
 };
-
-//it's not thread safe for 'other', please note. for this queue, depends on 'Q'
-template<typename Q>
-size_t move_items_in(Q& dest, Q& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
-{
-	if (other.empty())
-		return 0;
-
-	auto cur_size = dest.size();
-	if (cur_size >= max_size)
-		return 0;
-
-	size_t num = 0;
-	typename Q::data_type item;
-
-	typename Q::lock_guard lock(dest);
-	while (cur_size < max_size && other.try_dequeue_(item)) //size not controlled accurately
-	{
-		enqueue_(std::move(item));
-		++cur_size;
-		++num;
-	}
-
-	return num;
-}
-
-//it's not thread safe for 'other', please note. for this queue, depends on 'Q'
-template<typename Q, template <typename...> class Q2>
-size_t move_items_in(Q& dest, Q2<typename Q::data_type>& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
-{
-	if (other.empty())
-		return 0;
-
-	auto cur_size = dest.size();
-	if (cur_size >= max_size)
-		return 0;
-
-	size_t num = 0;
-
-	typename Q::lock_guard lock(dest);
-	while (cur_size < max_size && !other.empty()) //size not controlled accurately
-	{
-		dest.enqueue_(std::move(other.front()));
-		other.pop_front();
-		++cur_size;
-		++num;
-	}
-
-	return num;
-}
 
 class dummy_lockable
 {
@@ -161,13 +111,60 @@ public:
 	bool enqueue_(const T& item) {this->push_back(item); return true;}
 	bool enqueue_(T&& item) {this->push_back(std::move(item)); return true;}
 	bool try_dequeue_(T& item) {if (this->empty()) return false; item.swap(this->front()); this->pop_front(); return true;}
-
-	friend size_t move_items_in<me>(me&, me&, size_t);
-	friend size_t move_items_in<me>(me&, list<T>&, size_t);
 };
 
 template<typename T, typename Container> using non_lock_queue = queue<T, Container, dummy_lockable>; //totally not thread safe
 template<typename T, typename Container> using lock_queue = queue<T, Container, lockable>;
+
+//it's not thread safe for 'other', please note. for this queue, depends on 'Q'
+template<typename Q>
+size_t move_items_in(Q& dest, Q& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
+{
+	if (other.empty())
+		return 0;
+
+	auto cur_size = dest.size();
+	if (cur_size >= max_size)
+		return 0;
+
+	size_t num = 0;
+	typename Q::data_type item;
+
+	typename Q::lock_guard lock(dest);
+	while (cur_size < max_size && other.try_dequeue_(item)) //size not controlled accurately
+	{
+		dest.enqueue_(std::move(item));
+		++cur_size;
+		++num;
+	}
+
+	return num;
+}
+
+//it's not thread safe for 'other', please note. for this queue, depends on 'Q'
+template<typename Q, typename Q2>
+size_t move_items_in(Q& dest, Q2& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
+{
+	if (other.empty())
+		return 0;
+
+	auto cur_size = dest.size();
+	if (cur_size >= max_size)
+		return 0;
+
+	size_t num = 0;
+
+	typename Q::lock_guard lock(dest);
+	while (cur_size < max_size && !other.empty()) //size not controlled accurately
+	{
+		dest.enqueue_(std::move(other.front()));
+		other.pop_front();
+		++cur_size;
+		++num;
+	}
+
+	return num;
+}
 
 template<typename _Can>
 bool splice_helper(_Can& dest_can, _Can& src_can, size_t max_size = ST_ASIO_MAX_MSG_NUM)
