@@ -37,23 +37,12 @@
 	static_assert(ST_ASIO_DELAY_CLOSE > 0, "ST_ASIO_DELAY_CLOSE must be bigger than zero.");
 #endif
 
-#ifndef ST_ASIO_INPUT_QUEUE
-#define ST_ASIO_INPUT_QUEUE lock_queue
-#endif
-#ifndef ST_ASIO_INPUT_CONTAINER
-#define ST_ASIO_INPUT_CONTAINER boost::container::list
-#endif
-#ifndef ST_ASIO_OUTPUT_QUEUE
-#define ST_ASIO_OUTPUT_QUEUE lock_queue
-#endif
-#ifndef ST_ASIO_OUTPUT_CONTAINER
-#define ST_ASIO_OUTPUT_CONTAINER boost::container::list
-#endif
-
 namespace st_asio_wrapper
 {
 
-template<typename Socket, typename Packer, typename Unpacker, typename InMsgType, typename OutMsgType>
+template<typename Socket, typename Packer, typename Unpacker, typename InMsgType, typename OutMsgType,
+	template<typename, typename> class InQueue, template<typename> class InContainer,
+	template<typename, typename> class OutQueue, template<typename> class OutContainer>
 class st_socket: public st_timer
 {
 public:
@@ -171,8 +160,8 @@ protected:
 
 	typedef obj_with_begin_time<InMsgType> in_msg;
 	typedef obj_with_begin_time<OutMsgType> out_msg;
-	typedef queue<ST_ASIO_INPUT_QUEUE<in_msg, ST_ASIO_INPUT_CONTAINER<in_msg>>> in_container_type;
-	typedef queue<ST_ASIO_OUTPUT_QUEUE<out_msg, ST_ASIO_OUTPUT_CONTAINER<out_msg>>> out_container_type;
+	typedef InQueue<in_msg, InContainer<in_msg>> in_container_type;
+	typedef OutQueue<out_msg, OutContainer<out_msg>> out_container_type;
 
 	static const tid TIMER_BEGIN = st_timer::TIMER_END;
 	static const tid TIMER_HANDLE_MSG = TIMER_BEGIN;
@@ -381,7 +370,7 @@ protected:
 		auto temp_buffer(std::move(temp_msg_buffer));
 #endif
 
-		if (recv_msg_buffer.move_items_in(temp_buffer, -1) > 0)
+		if (move_items_in(recv_msg_buffer, temp_buffer, -1) > 0)
 			dispatch_msg();
 
 		if (temp_msg_buffer.empty() && recv_msg_buffer.size() < ST_ASIO_MAX_MSG_NUM)

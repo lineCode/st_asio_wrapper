@@ -22,11 +22,9 @@
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
-#include <boost/thread.hpp>
 #include <boost/smart_ptr.hpp>
-#include <boost/container/list.hpp>
 
-#include "st_asio_wrapper.h"
+#include "st_asio_wrapper_container.h"
 
 //the size of the buffer used when receiving msg, must equal to or larger than the biggest msg size,
 //the bigger this buffer is, the more msgs can be received in one time if there are enough msgs buffered in the SOCKET.
@@ -173,156 +171,6 @@ public:
 	virtual msg_type pack_msg(const char* const pstr[], const size_t len[], size_t num, bool native = false) {assert(false); return msg_type();}
 };
 
-class dummy_lockable
-{
-public:
-	typedef boost::lock_guard<dummy_lockable> lock_guard;
-
-	//lockable, dummy
-	void lock() const {}
-	void unlock() const {}
-	bool idle() const {return true;} //locked or not
-};
-
-class lockable
-{
-public:
-	typedef boost::lock_guard<lockable> lock_guard;
-
-	//lockable
-	void lock() {mutex.lock();}
-	void unlock() {mutex.unlock();}
-	bool idle() {boost::unique_lock<boost::shared_mutex> lock(mutex, boost::try_to_lock); return lock.owns_lock();} //locked or not
-
-private:
-	boost::shared_mutex mutex;
-};
-
-//Container must at least has the following functions:
-// Container() constructor
-// size
-// empty
-// clear
-// swap
-// push_back(const T& item)
-// push_back(T&& item)
-// front
-// pop_front
-//
-//totally not thread safe.
-template<typename T, typename Container>
-class non_lock_queue : public Container, public dummy_lockable
-{
-public:
-	typedef T data_type;
-	typedef Container super;
-	typedef non_lock_queue<T, Container> me;
-
-	non_lock_queue() {}
-	non_lock_queue(size_t) {}
-
-	void clear() {super::clear();}
-	void swap(me& other) {super::swap(other);}
-
-	bool enqueue(const T& item) {return enqueue_(item);}
-	bool enqueue(T&& item) {return enqueue_(std::move(item));}
-	bool try_dequeue(T& item) {return try_dequeue_(item);}
-
-	bool enqueue_(const T& item) {this->push_back(item); return true;}
-	bool enqueue_(T&& item) {this->push_back(std::move(item)); return true;}
-	bool try_dequeue_(T& item) {if (this->empty()) return false; item.swap(this->front()); this->pop_front(); return true;}
-};
-
-//Container must at least has the following functions:
-// Container() constructor
-// size
-// empty
-// clear
-// swap
-// push_back(const T& item)
-// push_back(T&& item)
-// front
-// pop_front
-template<typename T, typename Container>
-class lock_queue : public Container, public lockable
-{
-public:
-	typedef T data_type;
-	typedef Container super;
-	typedef lock_queue<T, Container> me;
-
-	lock_queue() {}
-	lock_queue(size_t) {}
-
-	//not thread-safe
-	void clear() {super::clear();}
-	void swap(me& other) {super::swap(other);}
-
-	bool enqueue(const T& item) {lock_guard lock(*this); return enqueue_(item);}
-	bool enqueue(T&& item) {lock_guard lock(*this); return enqueue_(std::move(item));}
-	bool try_dequeue(T& item) {lock_guard lock(*this); return try_dequeue_(item);}
-
-	bool enqueue_(const T& item) {this->push_back(item); return true;}
-	bool enqueue_(T&& item) {this->push_back(std::move(item)); return true;}
-	bool try_dequeue_(T& item) {if (this->empty()) return false; item.swap(this->front()); this->pop_front(); return true;}
-};
-
-template<typename T>
-class queue : public T
-{
-public:
-	queue() {}
-	queue(size_t size) : T(size) {}
-
-	//it's not thread safe for 'other', please note. for this queue, depends on 'T'
-	size_t move_items_in(typename T::me& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
-	{
-		if (other.empty())
-			return 0;
-
-		auto cur_size = this->size();
-		if (cur_size >= max_size)
-			return 0;
-
-		size_t num = 0;
-		typename T::data_type item;
-
-		typename T::lock_guard lock(*this);
-		while (cur_size < max_size && other.try_dequeue_(item)) //size not controlled accurately
-		{
-			this->enqueue_(std::move(item));
-			++cur_size;
-			++num;
-		}
-
-		return num;
-	}
-
-	//it's not thread safe for 'other', please note. for this queue, depends on 'T'
-	size_t move_items_in(boost::container::list<typename T::data_type>& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
-	{
-		if (other.empty())
-			return 0;
-
-		auto cur_size = this->size();
-		if (cur_size >= max_size)
-			return 0;
-
-		size_t num = 0;
-
-		typename T::lock_guard lock(*this);
-		while (cur_size < max_size && !other.empty()) //size not controlled accurately
-		{
-			this->enqueue_(std::move(other.front()));
-			other.pop_front();
-			++cur_size;
-			++num;
-		}
-
-		return num;
-	}
-};
-
 //unpacker concept
 template<typename MsgType>
 class i_unpacker
@@ -397,30 +245,6 @@ void do_something_to_one(_Can& __can, _Mutex& __mutex, const _Predicate& __pred)
 
 template<typename _Can, typename _Predicate>
 void do_something_to_one(_Can& __can, const _Predicate& __pred) {for (auto iter = std::begin(__can); iter != std::end(__can); ++iter) if (__pred(*iter)) break;}
-
-template<typename _Can>
-bool splice_helper(_Can& dest_can, _Can& src_can, size_t max_size = ST_ASIO_MAX_MSG_NUM)
-{
-	auto size = dest_can.size();
-	if (size < max_size) //dest_can can hold more items.
-	{
-		size = max_size - size; //maximum items this time can handle
-		auto begin_iter = std::begin(src_can), end_iter = std::end(src_can);
-		if (src_can.size() > size) //some items left behind
-		{
-			auto left_num = src_can.size() - size;
-			end_iter = left_num > size ? std::next(begin_iter, size) : std::prev(end_iter, left_num); //find the minimum movement
-		}
-		else
-			size = src_can.size();
-		//use size to avoid std::distance() call, so, size must correct
-		dest_can.splice(std::end(dest_can), src_can, begin_iter, end_iter, size);
-
-		return size > 0;
-	}
-
-	return false;
-}
 
 //member functions, used to do something to any member container(except map and multimap) optionally with any member mutex
 #define DO_SOMETHING_TO_ALL_MUTEX(CAN, MUTEX) DO_SOMETHING_TO_ALL_MUTEX_NAME(do_something_to_all, CAN, MUTEX)

@@ -61,7 +61,7 @@ size_t move_items_in(Q& dest, Q& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
 	if (other.empty())
 		return 0;
 
-	size_t cur_size = dest.size();
+	auto cur_size = dest.size();
 	if (cur_size >= max_size)
 		return 0;
 
@@ -71,7 +71,7 @@ size_t move_items_in(Q& dest, Q& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
 	typename Q::lock_guard lock(dest);
 	while (cur_size < max_size && other.try_dequeue_(item)) //size not controlled accurately
 	{
-		enqueue_(item);
+		enqueue_(std::move(item));
 		++cur_size;
 		++num;
 	}
@@ -80,13 +80,13 @@ size_t move_items_in(Q& dest, Q& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
 }
 
 //it's not thread safe for 'other', please note. for this queue, depends on 'Q'
-template<typename Q, template <typename> class Q2>
+template<typename Q, template <typename...> class Q2>
 size_t move_items_in(Q& dest, Q2<typename Q::data_type>& other, size_t max_size = ST_ASIO_MAX_MSG_NUM)
 {
 	if (other.empty())
 		return 0;
 
-	size_t cur_size = dest.size();
+	auto cur_size = dest.size();
 	if (cur_size >= max_size)
 		return 0;
 
@@ -95,7 +95,7 @@ size_t move_items_in(Q& dest, Q2<typename Q::data_type>& other, size_t max_size 
 	typename Q::lock_guard lock(dest);
 	while (cur_size < max_size && !other.empty()) //size not controlled accurately
 	{
-		dest.enqueue_(other.front());
+		dest.enqueue_(std::move(other.front()));
 		other.pop_front();
 		++cur_size;
 		++num;
@@ -104,7 +104,7 @@ size_t move_items_in(Q& dest, Q2<typename Q::data_type>& other, size_t max_size 
 	return num;
 }
 
-class dummy_lockable //totally not thread safe
+class dummy_lockable
 {
 public:
 	typedef boost::lock_guard<dummy_lockable> lock_guard;
@@ -132,13 +132,12 @@ private:
 //Container must at least has the following functions:
 // Container() constructor
 // size
-// resize
 // empty
 // clear
 // swap
 // push_back(const T& item)
+// push_back(T&& item)
 // front
-// back
 // pop_front
 template<typename T, typename Container, typename Lockable>
 class queue : public Container, public Lockable
@@ -156,59 +155,37 @@ public:
 	void swap(me& other) {super::swap(other);}
 
 	bool enqueue(const T& item) {typename Lockable::lock_guard lock(*this); return enqueue_(item);}
-	bool enqueue(T& item) {typename Lockable::lock_guard lock(*this); return enqueue_(item);}
+	bool enqueue(T&& item) {typename Lockable::lock_guard lock(*this); return enqueue_(std::move(item));}
 	bool try_dequeue(T& item) {typename Lockable::lock_guard lock(*this); return try_dequeue_(item);}
 
 	bool enqueue_(const T& item) {this->push_back(item); return true;}
-	bool enqueue_(T& item) {this->resize(this->size() + 1); this->back().swap(item); return true;} //after this, item will becomes empty, please note.
+	bool enqueue_(T&& item) {this->push_back(std::move(item)); return true;}
 	bool try_dequeue_(T& item) {if (this->empty()) return false; item.swap(this->front()); this->pop_front(); return true;}
 
 	friend size_t move_items_in<me>(me&, me&, size_t);
 	friend size_t move_items_in<me>(me&, list<T>&, size_t);
 };
 
-template<typename T, typename Container>
-class non_lock_queue : public queue<T, Container, dummy_lockable>
-{
-protected:
-	typedef queue<T, Container, dummy_lockable> super;
-
-public:
-	non_lock_queue() {}
-	non_lock_queue(size_t size) : super(size) {}
-};
-
-template<typename T, typename Container>
-class lock_queue : public queue<T, Container, lockable>
-{
-protected:
-	typedef queue<T, Container, lockable> super;
-
-public:
-	lock_queue() {}
-	lock_queue(size_t size) : super(size) {}
-};
+template<typename T, typename Container> using non_lock_queue = queue<T, Container, dummy_lockable>; //totally not thread safe
+template<typename T, typename Container> using lock_queue = queue<T, Container, lockable>;
 
 template<typename _Can>
 bool splice_helper(_Can& dest_can, _Can& src_can, size_t max_size = ST_ASIO_MAX_MSG_NUM)
 {
-	size_t size = dest_can.size();
+	auto size = dest_can.size();
 	if (size < max_size) //dest_can can hold more items.
 	{
 		size = max_size - size; //maximum items this time can handle
-		BOOST_AUTO(begin_iter, src_can.begin()); BOOST_AUTO(end_iter, src_can.end());
+		auto begin_iter = std::begin(src_can), end_iter = std::end(src_can);
 		if (src_can.size() > size) //some items left behind
 		{
-			size_t left_num = src_can.size() - size;
-			if (left_num > size) //find the minimum movement
-				std::advance(end_iter = begin_iter, size);
-			else
-				std::advance(end_iter, -(int) left_num);
+			auto left_num = src_can.size() - size;
+			end_iter = left_num > size ? std::next(begin_iter, size) : std::prev(end_iter, left_num); //find the minimum movement
 		}
 		else
 			size = src_can.size();
 		//use size to avoid std::distance() call, so, size must correct
-		dest_can.splice(dest_can.end(), src_can, begin_iter, end_iter, size);
+		dest_can.splice(std::end(dest_can), src_can, begin_iter, end_iter, size);
 
 		return size > 0;
 	}
