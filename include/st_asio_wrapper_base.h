@@ -114,6 +114,7 @@ public:
 	typedef const buffer_type buffer_ctype;
 
 	shared_buffer() {}
+	shared_buffer(T* _buffer) {buffer.reset(_buffer);}
 	shared_buffer(buffer_type _buffer) : buffer(_buffer) {}
 	shared_buffer(const shared_buffer& other) : buffer(other.buffer) {}
 	shared_buffer(shared_buffer&& other) : buffer(std::move(other.buffer)) {}
@@ -123,6 +124,7 @@ public:
 	shared_buffer& operator=(shared_buffer&& other) {clear(); swap(other); return *this;}
 
 	buffer_type raw_buffer() const {return buffer;}
+	void raw_buffer(T* _buffer) {buffer.reset(_buffer);}
 	void raw_buffer(buffer_ctype _buffer) {buffer = _buffer;}
 
 	//the following five functions are needed by st_asio_wrapper

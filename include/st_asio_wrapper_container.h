@@ -44,10 +44,10 @@ namespace st_asio_wrapper
 
 //st_asio_wrapper requires that container must take one and only one template argument.
 template <class T>
-class list : public boost::container::list<T, std::allocator<T> >
+class list : public boost::container::list<T>
 {
 protected:
-	typedef boost::container::list<T, std::allocator<T> > super;
+	typedef boost::container::list<T> super;
 
 public:
 	list() {}
