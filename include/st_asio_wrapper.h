@@ -96,6 +96,7 @@
  * In contrast to non_lock_queue, rename message_queue to lock_queue.
  * Move container related classes and functions from st_asio_wrapper_base.h to st_asio_wrapper_container.h.
  * Improve efficiency in scenarios of low throughput like pingpong test.
+ * Replaceable packer/unpacker now support replaceable_buffer (an alias of auto_buffer) and shared_buffer to be their message type.
  *
  */
 
