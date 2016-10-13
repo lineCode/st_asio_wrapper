@@ -113,6 +113,7 @@ public:
 	~shared_buffer() {clear();}
 
 	buffer_type raw_buffer() const {return buffer;}
+	void raw_buffer(T* _buffer) {buffer.reset(_buffer);}
 	void raw_buffer(buffer_ctype _buffer) {buffer = _buffer;}
 
 	//the following five functions are needed by st_asio_wrapper
