@@ -114,9 +114,9 @@ class echo_client : public st_tcp_client_base<echo_socket>
 public:
 	echo_client(st_service_pump& service_pump_) : st_tcp_client_base<echo_socket>(service_pump_) {}
 
-	echo_socket::statistic get_statistic()
+	statistic get_statistic()
 	{
-		echo_socket::statistic stat;
+		statistic stat;
 		boost::shared_lock<boost::shared_mutex> lock(ST_THIS object_can_mutex);
 		for (BOOST_AUTO(iter, ST_THIS object_can.begin()); iter != ST_THIS object_can.end(); ++iter)
 			stat += (*iter)->get_statistic();

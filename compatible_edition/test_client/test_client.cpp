@@ -165,9 +165,9 @@ public:
 		return total_recv_bytes;
 	}
 
-	test_socket::statistic get_statistic()
+	statistic get_statistic()
 	{
-		test_socket::statistic stat;
+		statistic stat;
 		boost::shared_lock<boost::shared_mutex> lock(ST_THIS object_can_mutex);
 		for (BOOST_AUTO(iter, ST_THIS object_can.begin()); iter != ST_THIS object_can.end(); ++iter)
 			stat += (*iter)->get_statistic();

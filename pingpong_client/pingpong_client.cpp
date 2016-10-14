@@ -118,9 +118,9 @@ class echo_client : public st_tcp_client_base<echo_socket>
 public:
 	echo_client(st_service_pump& service_pump_) : st_tcp_client_base<echo_socket>(service_pump_) {}
 
-	echo_socket::statistic get_statistic()
+	statistic get_statistic()
 	{
-		echo_socket::statistic stat;
+		statistic stat;
 		do_something_to_all([&stat](object_ctype& item) {stat += item->get_statistic(); });
 
 		return stat;

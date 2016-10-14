@@ -167,9 +167,9 @@ public:
 		return total_recv_bytes;
 	}
 
-	test_socket::statistic get_statistic()
+	statistic get_statistic()
 	{
-		test_socket::statistic stat;
+		statistic stat;
 		do_something_to_all([&stat](object_ctype& item) {stat += item->get_statistic();});
 
 		return stat;

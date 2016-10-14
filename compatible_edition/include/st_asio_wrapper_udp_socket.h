@@ -131,7 +131,7 @@ protected:
 	{
 		if (is_send_allowed() && !ST_THIS stopped() && !ST_THIS send_msg_buffer.empty() && ST_THIS send_msg_buffer.try_dequeue(last_send_msg))
 		{
-			ST_THIS stat.send_delay_sum += super::statistic::local_time() - last_send_msg.begin_time;
+			ST_THIS stat.send_delay_sum += statistic::local_time() - last_send_msg.begin_time;
 
 			last_send_msg.restart();
 			boost::shared_lock<boost::shared_mutex> lock(shutdown_mutex);
@@ -212,7 +212,7 @@ private:
 		{
 			assert(bytes_transferred == last_send_msg.size());
 
-			ST_THIS stat.send_time_sum += super::statistic::local_time() - last_send_msg.begin_time;
+			ST_THIS stat.send_time_sum += statistic::local_time() - last_send_msg.begin_time;
 			ST_THIS stat.send_byte_sum += bytes_transferred;
 			++ST_THIS stat.send_msg_sum;
 #ifdef ST_ASIO_WANT_MSG_SEND_NOTIFY
