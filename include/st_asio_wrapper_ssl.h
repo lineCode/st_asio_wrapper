@@ -217,7 +217,7 @@ private:
 
 	void handshake_handler(const boost::system::error_code& ec, typename st_ssl_server_base::object_ctype& client_ptr)
 	{
-		on_handshake(ec, client_ptr);
+		ST_THIS on_handshake(ec, client_ptr);
 		if (!ec && ST_THIS add_client(client_ptr))
 			client_ptr->start();
 	}
