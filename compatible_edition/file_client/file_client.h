@@ -3,8 +3,6 @@
 #define FILE_CLIENT_H_
 
 #include <boost/timer/timer.hpp>
-#include <boost/lambda/bind.hpp>
-#include <boost/lambda/lambda.hpp>
 
 #include "../file_server/packer_unpacker.h"
 #include "../include/ext/st_asio_wrapper_client.h"

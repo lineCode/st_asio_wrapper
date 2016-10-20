@@ -112,10 +112,12 @@ protected:
 	void start()
 	{
 #ifndef ST_ASIO_REUSE_OBJECT
-		set_timer(TIMER_FREE_SOCKET, 1000 * ST_ASIO_FREE_OBJECT_INTERVAL, boost::bind(&st_object_pool::free_object_handler, this, _1));
+		set_timer(TIMER_FREE_SOCKET, 1000 * ST_ASIO_FREE_OBJECT_INTERVAL,
+			boost::lambda::if_then_else_return(boost::lambda::bind(&st_object_pool::free_object, this, -1), true, true));
 #endif
 #ifdef ST_ASIO_CLEAR_OBJECT_INTERVAL
-		set_timer(TIMER_CLEAR_SOCKET, 1000 * ST_ASIO_CLEAR_OBJECT_INTERVAL, boost::bind(&st_object_pool::clear_obsoleted_object_handler, this, _1));
+		set_timer(TIMER_CLEAR_SOCKET, 1000 * ST_ASIO_CLEAR_OBJECT_INTERVAL,
+			boost::lambda::if_then_else_return(boost::lambda::bind(&st_object_pool::clear_obsoleted_object, this), true, true));
 #endif
 	}
 
@@ -347,15 +349,6 @@ public:
 
 	DO_SOMETHING_TO_ALL_MUTEX(object_can, object_can_mutex)
 	DO_SOMETHING_TO_ONE_MUTEX(object_can, object_can_mutex)
-
-private:
-#ifndef ST_ASIO_REUSE_OBJECT
-	bool free_object_handler(tid id) {assert(TIMER_FREE_SOCKET == id); free_object(); return true;}
-#endif
-
-#ifdef ST_ASIO_CLEAR_OBJECT_INTERVAL
-	bool clear_obsoleted_object_handler(tid id) {assert(TIMER_CLEAR_SOCKET == id); clear_obsoleted_object(); return true;}
-#endif
 
 protected:
 	st_atomic_uint_fast64 cur_id;

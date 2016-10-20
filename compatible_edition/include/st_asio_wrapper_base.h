@@ -26,6 +26,9 @@
 #include <boost/bind.hpp>
 #include <boost/date_time.hpp>
 #include <boost/smart_ptr.hpp>
+#include "boost/lambda/lambda.hpp"
+#include "boost/lambda/bind.hpp"
+#include "boost/lambda/if.hpp"
 
 #include "st_asio_wrapper_container.h"
 

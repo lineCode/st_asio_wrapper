@@ -207,16 +207,19 @@ private:
 		if (!ec)
 		{
 			if (ST_THIS on_accept(client_ptr))
-				client_ptr->next_layer().async_handshake(boost::asio::ssl::stream_base::server, [client_ptr, this](const boost::system::error_code& ec) {
-					ST_THIS on_handshake(ec, client_ptr);
-					if (!ec && ST_THIS add_client(client_ptr))
-						client_ptr->start();
-				});
+				client_ptr->next_layer().async_handshake(boost::asio::ssl::stream_base::server, [client_ptr, this](const boost::system::error_code& ec) {ST_THIS handshake_handler(ec, client_ptr);});
 
 			start_next_accept();
 		}
 		else
 			ST_THIS stop_listen();
+	}
+
+	void handshake_handler(const boost::system::error_code& ec, typename st_ssl_server_base::object_ctype& client_ptr)
+	{
+		on_handshake(ec, client_ptr);
+		if (!ec && ST_THIS add_client(client_ptr))
+			client_ptr->start();
 	}
 };
 
