@@ -112,12 +112,10 @@ protected:
 	void start()
 	{
 #ifndef ST_ASIO_REUSE_OBJECT
-		set_timer(TIMER_FREE_SOCKET, 1000 * ST_ASIO_FREE_OBJECT_INTERVAL,
-			boost::lambda::if_then_else_return(boost::lambda::bind(&st_object_pool::free_object, this, -1), true, true));
+		set_timer(TIMER_FREE_SOCKET, 1000 * ST_ASIO_FREE_OBJECT_INTERVAL, boost::lambda::if_then_else_return(boost::lambda::bind(&st_object_pool::free_object, this, -1), true, true));
 #endif
 #ifdef ST_ASIO_CLEAR_OBJECT_INTERVAL
-		set_timer(TIMER_CLEAR_SOCKET, 1000 * ST_ASIO_CLEAR_OBJECT_INTERVAL,
-			boost::lambda::if_then_else_return(boost::lambda::bind(&st_object_pool::clear_obsoleted_object, this), true, true));
+		set_timer(TIMER_CLEAR_SOCKET, 1000 * ST_ASIO_CLEAR_OBJECT_INTERVAL, boost::lambda::if_then_else_return(boost::lambda::bind(&st_object_pool::clear_obsoleted_object, this), true, true));
 #endif
 	}
 
