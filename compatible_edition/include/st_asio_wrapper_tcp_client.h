@@ -36,7 +36,7 @@ public:
 	size_t valid_size()
 	{
 		size_t size = 0;
-		ST_THIS do_something_to_all(boost::lambda::if_then(boost::lambda::bind(&Socket::is_connected, boost::lambda::bind(&Pool::object_type::get, boost::lambda::_1)), ++boost::lambda::var(size)));
+		ST_THIS do_something_to_all(boost::lambda::if_then(boost::lambda::bind(&Socket::is_connected, *boost::lambda::_1), ++boost::lambda::var(size)));
 		return size;
 	}
 

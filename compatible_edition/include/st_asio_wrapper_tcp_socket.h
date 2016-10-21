@@ -184,7 +184,6 @@ protected:
 
 		shutdown_state = FORCE;
 		ST_THIS stop_all_timer();
-		ST_THIS close(); //must after stop_all_timer(), it's very important
 		ST_THIS started_ = false;
 //		reset_state();
 
@@ -193,6 +192,8 @@ protected:
 			boost::system::error_code ec;
 			ST_THIS lowest_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
 		}
+
+		ST_THIS close(); //call this at the end of 'shutdown', it's very important
 	}
 
 private:
