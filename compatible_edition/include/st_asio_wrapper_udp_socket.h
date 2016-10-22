@@ -111,7 +111,7 @@ public:
 	//msg sending interface
 	///////////////////////////////////////////////////
 
-	void show_info(const char* head, const char* tail) const {unified_out::info_out("%s %s:%hu %s", head, local_addr.address().to_string().c_str(), local_addr.port(), tail);}
+	void show_info(const char* head, const char* tail) const {unified_out::info_out("%s %s:%hu %s", head, local_addr.address().to_string().data(), local_addr.port(), tail);}
 
 protected:
 	virtual bool do_start()
