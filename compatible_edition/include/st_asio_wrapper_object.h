@@ -30,23 +30,18 @@ public:
 	bool stopped() const {return io_service_.stopped();}
 
 #ifdef ST_ASIO_ENHANCED_STABILITY
-	void post(const boost::function<void()>& handler) {io_service_.post(boost::bind(&st_object::post_handler, this, async_call_indicator, handler));}
+	void post(const boost::function<void()>& handler) {io_service_.post((async_call_indicator, boost::lambda::bind(&boost::function<void()>::operator(), handler)));}
 	bool is_async_calling() const {return !async_call_indicator.unique();}
 	bool is_last_async_call() const {return async_call_indicator.use_count() <= 2;} //can only be called in callbacks
 
 	boost::function<void(const boost::system::error_code&)> make_handler_error(const boost::function<void(const boost::system::error_code&)>& handler) const
-		{return boost::bind(&st_object::error_handler, this, async_call_indicator, handler, boost::asio::placeholders::error);}
+		{return (async_call_indicator, boost::lambda::bind(&boost::function<void(const boost::system::error_code&)>::operator(), handler, boost::lambda::_1));}
 
 	boost::function<void(const boost::system::error_code&, size_t)> make_handler_error_size(const boost::function<void(const boost::system::error_code&, size_t)>& handler) const
-		{return boost::bind(&st_object::error_size_handler, this, async_call_indicator, handler, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred);}
+		{return (async_call_indicator, boost::lambda::bind(&boost::function<void(const boost::system::error_code&, size_t)>::operator(), handler, boost::lambda::_1, boost::lambda::_2));}
 
 protected:
 	void reset() {async_call_indicator = boost::make_shared<char>('\0');}
-	void post_handler(const boost::shared_ptr<char>& unused, const boost::function<void()>& handler) const {handler();}
-	void error_handler(const boost::shared_ptr<char>& unused, const boost::function<void(const boost::system::error_code&)>& handler,
-		const boost::system::error_code& ec) const {handler(ec);}
-	void error_size_handler(const boost::shared_ptr<char>& unused, const boost::function<void(const boost::system::error_code&, size_t)>& handler,
-		const boost::system::error_code& ec, size_t bytes_transferred) const {handler(ec, bytes_transferred);}
 
 protected:
 	boost::shared_ptr<char> async_call_indicator;
