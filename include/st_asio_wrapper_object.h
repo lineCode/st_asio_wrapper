@@ -28,18 +28,18 @@ public:
 	bool stopped() const {return io_service_.stopped();}
 
 #ifdef ST_ASIO_ENHANCED_STABILITY
+	template<typename CallbackHandler> void post(CallbackHandler&& handler) {auto unused(async_call_indicator); io_service_.post([=]() {handler();});}
 	template<typename CallbackHandler> void post(const CallbackHandler& handler) {auto unused(async_call_indicator); io_service_.post([=]() {handler();});}
-	template<typename CallbackHandler> void post(CallbackHandler&& handler) {auto unused(async_call_indicator); io_service_.post([=, handler = std::move(handler)]() {handler();});}
 
 	typedef std::function<void(const boost::system::error_code&)> handler_with_error;
 	template<typename CallbackHandler> handler_with_error make_handler_error(CallbackHandler&& handler) const
-		{auto unused(async_call_indicator); return [=, handler = std::move(handler)](const boost::system::error_code& ec) {handler(ec);};}
+		{auto unused(async_call_indicator); return [=](const boost::system::error_code& ec) {handler(ec);};}
 	template<typename CallbackHandler> handler_with_error make_handler_error(const CallbackHandler& handler) const
 		{auto unused(async_call_indicator); return [=](const boost::system::error_code& ec) {handler(ec);};}
 
 	typedef std::function<void(const boost::system::error_code&, size_t)> handler_with_error_size;
 	template<typename CallbackHandler> handler_with_error_size make_handler_error_size(CallbackHandler&& handler) const
-		{auto unused(async_call_indicator); return [=, handler = std::move(handler)](const boost::system::error_code& ec, size_t bytes_transferred) {handler(ec, bytes_transferred);};}
+		{auto unused(async_call_indicator); return [=](const boost::system::error_code& ec, size_t bytes_transferred) {handler(ec, bytes_transferred);};}
 	template<typename CallbackHandler> handler_with_error_size make_handler_error_size(CallbackHandler& handler) const
 		{auto unused(async_call_indicator); return [=](const boost::system::error_code& ec, size_t bytes_transferred) {handler(ec, bytes_transferred);};}
 
@@ -52,8 +52,8 @@ protected:
 protected:
 	boost::shared_ptr<char> async_call_indicator;
 #else
-	template<typename CallbackHandler> void post(const CallbackHandler& handler) {io_service_.post(handler);}
 	template<typename CallbackHandler> void post(CallbackHandler&& handler) {io_service_.post(std::move(handler));}
+	template<typename CallbackHandler> void post(const CallbackHandler& handler) {io_service_.post(handler);}
 
 	template<typename F> inline F&& make_handler_error(F&& f) const {return std::move(f);}
 	template<typename F> inline const F& make_handler_error(const F& f) const {return f;}
@@ -75,4 +75,3 @@ protected:
 } //namespace
 
 #endif /* ifndef ST_ASIO_WRAPPER_OBJECT_H_ */
-

@@ -67,4 +67,3 @@ protected:
 } //namespace
 
 #endif /* ifndef ST_ASIO_WRAPPER_OBJECT_H_ */
-
