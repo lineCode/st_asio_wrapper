@@ -87,9 +87,6 @@ protected:
 	}
 
 public:
-	//please do not change id at runtime via the following function, except this st_socket is not managed by st_object_pool,
-	//it should only be used by st_object_pool when reusing or creating new st_socket.
-	void id(uint_fast64_t id) {assert(!started_); if (started_) unified_out::error_out("id is unchangeable!"); else _id = id;}
 	uint_fast64_t id() const {return _id;}
 	bool is_equal_to(uint_fast64_t id) const {return _id == id;}
 
@@ -325,6 +322,11 @@ protected:
 	}
 
 private:
+	//please do not change id at runtime via the following function, except this st_socket is not managed by st_object_pool,
+	//it should only be used by st_object_pool when reusing or creating new st_socket.
+	template<typename Object> friend class st_object_pool;
+	void id(uint_fast64_t id) {assert(!started_); if (started_) unified_out::error_out("id is unchangeable!"); else _id = id;}
+
 	bool timer_handler(tid id)
 	{
 		switch (id)
