@@ -34,7 +34,7 @@ public:
 	template<typename F> handler_with_error make_handler_error(const F& handler) const {auto unused(async_call_indicator); return [=](const boost::system::error_code& ec) {handler(ec);};}
 
 	typedef std::function<void(const boost::system::error_code&, size_t)> handler_with_error_size;
-	template<typename F> handler_with_error_size make_handler_error_size(F& handler) const
+	template<typename F> handler_with_error_size make_handler_error_size(const F& handler) const
 		{auto unused(async_call_indicator); return [=](const boost::system::error_code& ec, size_t bytes_transferred) {handler(ec, bytes_transferred);};}
 
 	bool is_async_calling() const {return !async_call_indicator.unique();}
