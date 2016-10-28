@@ -30,15 +30,14 @@ public:
 	bool stopped() const {return io_service_.stopped();}
 
 #ifdef ST_ASIO_ENHANCED_STABILITY
-	void post(const boost::function<void()>& handler) {io_service_.post((async_call_indicator, boost::lambda::bind(&boost::function<void()>::operator(), handler)));}
+	void post(const boost::function<void()>& handler) {io_service_.post((async_call_indicator, boost::lambda::bind(boost::lambda::unlambda(handler))));}
 
 	typedef boost::function<void(const boost::system::error_code&)> handler_with_error;
-	handler_with_error make_handler_error(const handler_with_error& handler) const
-		{return (async_call_indicator, boost::lambda::bind(&handler_with_error::operator(), handler, boost::lambda::_1));}
+	handler_with_error make_handler_error(const handler_with_error& handler) const {return (async_call_indicator, boost::lambda::bind(boost::lambda::unlambda(handler), boost::lambda::_1));}
 
 	typedef boost::function<void(const boost::system::error_code&, size_t)> handler_with_error_size;
 	handler_with_error_size make_handler_error_size(const handler_with_error_size& handler) const
-		{return (async_call_indicator, boost::lambda::bind(&handler_with_error_size::operator(), handler, boost::lambda::_1, boost::lambda::_2));}
+		{return (async_call_indicator, boost::lambda::bind(boost::lambda::unlambda(handler), boost::lambda::_1, boost::lambda::_2));}
 
 	bool is_async_calling() const {return !async_call_indicator.unique();}
 	bool is_last_async_call() const {return async_call_indicator.use_count() <= 2;} //can only be called in callbacks
@@ -49,7 +48,7 @@ protected:
 protected:
 	boost::shared_ptr<char> async_call_indicator;
 #else
-	template<typename CallbackHandler> void post(const CallbackHandler& handler) {io_service_.post(handler);}
+	template<typename F> void post(const F& handler) {io_service_.post(handler);}
 	template<typename F> inline const F& make_handler_error(const F& f) const {return f;}
 	template<typename F> inline const F& make_handler_error_size(const F& f) const {return f;}
 

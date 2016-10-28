@@ -11,7 +11,7 @@
 //#define ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER //force to use the msg recv buffer
 #define ST_ASIO_CLEAR_OBJECT_INTERVAL	1
 //#define ST_ASIO_WANT_MSG_SEND_NOTIFY
-//#define ST_ASIO_FULL_STATISTIC //full statistic will slightly impact efficiency.
+//#define ST_ASIO_FULL_STATISTIC //full statistic will slightly impact efficiency
 #ifdef ST_ASIO_WANT_MSG_SEND_NOTIFY
 #define ST_ASIO_INPUT_QUEUE non_lock_queue //we will never operate sending buffer concurrently, so need no locks.
 #endif
