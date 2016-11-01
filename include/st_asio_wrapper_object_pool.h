@@ -220,7 +220,7 @@ protected:
 	object_type create_object() {return create_object(sp);}
 
 public:
-	//to configure unordered_set(for example, set factor or reserved size), not locked the mutex, so must be called before service_pump starting up.
+	//to configure unordered_set(for example, set factor or reserved size), not thread safe, so must be called before service_pump startup.
 	container_type& container() {return object_can;}
 
 	size_t max_size() const {return max_size_;}
@@ -296,7 +296,7 @@ public:
 
 		boost::unique_lock<boost::shared_mutex> lock(object_can_mutex);
 		for (auto iter = std::begin(object_can); iter != std::end(object_can);)
-			if ((*iter).unique() && (*iter)->obsoleted())
+			if ((*iter)->obsoleted())
 			{
 				objects.push_back(std::move(*iter));
 				iter = object_can.erase(iter);
@@ -328,7 +328,7 @@ public:
 
 		boost::unique_lock<boost::shared_mutex> lock(invalid_object_can_mutex);
 		for (auto iter = std::begin(invalid_object_can); num > 0 && iter != std::end(invalid_object_can);)
-			if ((*iter).unique() && (*iter)->obsoleted())
+			if ((*iter)->obsoleted())
 			{
 				--num;
 				++num_affected;
