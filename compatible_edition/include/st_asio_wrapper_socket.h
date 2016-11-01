@@ -18,19 +18,13 @@
 
 //after this duration, this st_socket can be freed from the heap or reused,
 //you must define this macro as a value, not just define it, the value means the duration, unit is second.
-//if macro ST_ASIO_ENHANCED_STABILITY been defined, this macro will always be zero.
-#ifdef ST_ASIO_ENHANCED_STABILITY
-	#if defined(ST_ASIO_DELAY_CLOSE) && ST_ASIO_DELAY_CLOSE != 0
-		#warning ST_ASIO_DELAY_CLOSE will always be zero if ST_ASIO_ENHANCED_STABILITY macro been defined.
-	#endif
-	#undef ST_ASIO_DELAY_CLOSE
-	#define ST_ASIO_DELAY_CLOSE 0
-#else
-	#ifndef ST_ASIO_DELAY_CLOSE
-	#define ST_ASIO_DELAY_CLOSE	5 //seconds
-	#elif ST_ASIO_DELAY_CLOSE <= 0
-		#error "ST_ASIO_DELAY_CLOSE must be bigger than zero."
-	#endif
+//a value equal to zero will cause st_socket to use a mechanism to guarantee 100% safety when reusing or freeing it,
+//st_object will hook all async calls to avoid this st_socket to be reused or freed before all async calls finish
+//or been interrupted (of course, this mechanism will slightly impact efficiency).
+#ifndef ST_ASIO_DELAY_CLOSE
+#define ST_ASIO_DELAY_CLOSE	0 //seconds, guarantee 100% safety when reusing or freeing this st_socket
+#elif ST_ASIO_DELAY_CLOSE < 0
+	#error "delay close duration must be bigger than or equal to zero."
 #endif
 
 namespace st_asio_wrapper
@@ -72,9 +66,6 @@ protected:
 
 		sending = paused_sending = false;
 		dispatching = paused_dispatching = congestion_controlling = false;
-#ifndef ST_ASIO_ENHANCED_STABILITY
-		closing = false;
-#endif
 //		started_ = false;
 	}
 
@@ -96,14 +87,7 @@ public:
 	typename Socket::lowest_layer_type& lowest_layer() {return next_layer().lowest_layer();}
 	const typename Socket::lowest_layer_type& lowest_layer() const {return next_layer().lowest_layer();}
 
-	virtual bool obsoleted()
-	{
-#ifndef ST_ASIO_ENHANCED_STABILITY
-		return started() || closing || ST_THIS is_async_calling() ? false : recv_msg_buffer.empty() && recv_msg_buffer.idle();
-#else
-		return !started() && !ST_THIS is_async_calling();
-#endif
-	}
+	virtual bool obsoleted() {return !dispatching && !started() && !is_async_calling();}
 
 	bool started() const {return started_;}
 	void start()
@@ -135,7 +119,8 @@ public:
 	void suspend_send_msg(bool suspend) {if (!(paused_sending = suspend)) send_msg();}
 	bool suspend_send_msg() const {return paused_sending;}
 
-	void suspend_dispatch_msg(bool suspend) {if (!(paused_dispatching = suspend)) dispatch_msg();}
+	//for a st_socket that has been shut down, resuming message dispatching will not take effect for left messages.
+	void suspend_dispatch_msg(bool suspend) {if (!(paused_dispatching = suspend) && started()) dispatch_msg();}
 	bool suspend_dispatch_msg() const {return paused_dispatching;}
 
 	void congestion_control(bool enable) {congestion_controlling = enable; unified_out::warning_out("%s congestion control.", enable ? "open" : "close");}
@@ -224,9 +209,7 @@ protected:
 	{
 		if (is_closable())
 		{
-#ifndef ST_ASIO_ENHANCED_STABILITY
-			closing = true;
-#endif
+			set_async_calling(true);
 			set_timer(TIMER_DELAY_CLOSE, ST_ASIO_DELAY_CLOSE * 1000 + 50, boost::bind(&st_socket::timer_handler, this, _1));
 		}
 	}
@@ -351,9 +334,8 @@ private:
 				lowest_layer().close(ec);
 			}
 			on_close();
-#ifndef ST_ASIO_ENHANCED_STABILITY
-			closing = false;
-#endif
+			set_async_calling(false);
+
 			break;
 		default:
 			assert(false);
@@ -399,7 +381,7 @@ protected:
 	in_container_type send_msg_buffer;
 	out_container_type recv_msg_buffer;
 	boost::container::list<out_msg> temp_msg_buffer;
-	//st_socket will invoke handle_msg() when got some msgs. if these msgs can't be pushed into recv_msg_buffer because of:
+	//subclass will invoke handle_msg() when got some msgs. if these msgs can't be pushed into recv_msg_buffer because of:
 	// 1. msg dispatching suspended;
 	// 2. congestion control opened;
 	//st_socket will delay 50 milliseconds(non-blocking) to invoke handle_msg() again, and now, as you known, temp_msg_buffer is used to hold these msgs temporarily.
@@ -408,9 +390,6 @@ protected:
 	boost::shared_mutex send_mutex;
 	bool dispatching, paused_dispatching, congestion_controlling;
 	boost::shared_mutex dispatch_mutex;
-#ifndef ST_ASIO_ENHANCED_STABILITY
-	bool closing;
-#endif
 
 	bool started_; //has started or not
 	boost::shared_mutex start_mutex;

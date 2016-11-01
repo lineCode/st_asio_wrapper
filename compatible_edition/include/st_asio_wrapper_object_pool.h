@@ -297,7 +297,7 @@ public:
 
 		boost::unique_lock<boost::shared_mutex> lock(object_can_mutex);
 		for (BOOST_AUTO(iter, object_can.begin()); iter != object_can.end();)
-			if ((*iter).unique() && (*iter)->obsoleted())
+			if ((*iter)->obsoleted())
 			{
 				objects.push_back(*iter);
 				iter = object_can.erase(iter);
@@ -329,7 +329,7 @@ public:
 
 		boost::unique_lock<boost::shared_mutex> lock(invalid_object_can_mutex);
 		for (BOOST_AUTO(iter, invalid_object_can.begin()); num > 0 && iter != invalid_object_can.end();)
-			if ((*iter).unique() && (*iter)->obsoleted())
+			if ((*iter)->obsoleted())
 			{
 				--num;
 				++num_affected;

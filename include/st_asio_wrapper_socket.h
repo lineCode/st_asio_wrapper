@@ -377,7 +377,7 @@ protected:
 	in_container_type send_msg_buffer;
 	out_container_type recv_msg_buffer;
 	boost::container::list<out_msg> temp_msg_buffer;
-	//st_tcp_socket will invoke handle_msg() when got some msgs. if these msgs can't be pushed into recv_msg_buffer because of:
+	//subclass will invoke handle_msg() when got some msgs. if these msgs can't be pushed into recv_msg_buffer because of:
 	// 1. msg dispatching suspended;
 	// 2. congestion control opened;
 	//st_socket will delay 50 milliseconds(non-blocking) to invoke handle_msg() again, and now, as you known, temp_msg_buffer is used to hold these msgs temporarily.

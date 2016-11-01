@@ -4,11 +4,11 @@
 #include <boost/tokenizer.hpp>
 
 //configuration
-#define ST_ASIO_SERVER_PORT	9527
+#define ST_ASIO_SERVER_PORT		9527
 //#define ST_ASIO_REUSE_OBJECT //use objects pool
-#define ST_ASIO_DELAY_CLOSE	5 //define this to avoid hooks for async call (and slightly improve efficiency)
+#define ST_ASIO_DELAY_CLOSE		5 //define this to avoid hooks for async call (and slightly improve efficiency)
 //#define ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER //force to use the msg recv buffer
-//#define ST_ASIO_CLEAR_OBJECT_INTERVAL	1
+//#define ST_ASIO_CLEAR_OBJECT_INTERVAL 1
 //#define ST_ASIO_WANT_MSG_SEND_NOTIFY
 #define ST_ASIO_FULL_STATISTIC //full statistic will slightly impact efficiency
 #ifdef ST_ASIO_WANT_MSG_SEND_NOTIFY
