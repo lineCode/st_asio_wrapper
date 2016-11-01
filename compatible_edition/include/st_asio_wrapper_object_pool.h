@@ -221,7 +221,7 @@ protected:
 	object_type create_object() {return create_object(boost::ref(sp));}
 
 public:
-	//to configure unordered_set(for example, set factor or reserved size), not locked the mutex, so must be called before service_pump starting up.
+	//to configure unordered_set(for example, set factor or reserved size), not thread safe, so must be called before service_pump startup.
 	container_type& container() {return object_can;}
 
 	size_t max_size() const {return max_size_;}
