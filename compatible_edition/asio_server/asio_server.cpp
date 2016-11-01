@@ -142,9 +142,7 @@ public:
 	statistic get_statistic()
 	{
 		statistic stat;
-		boost::shared_lock<boost::shared_mutex> lock(ST_THIS object_can_mutex);
-		for (BOOST_AUTO(iter, ST_THIS object_can.begin()); iter != ST_THIS object_can.end(); ++iter)
-			stat += (*iter)->get_statistic();
+		do_something_to_all(stat += boost::lambda::bind(&echo_socket::get_statistic, *boost::lambda::_1));
 
 		return stat;
 	}
