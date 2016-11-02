@@ -75,6 +75,7 @@ int main(int argc, const char* argv[])
 				printf("transfer %s begin.\n", item.data());
 				if (client.find(0)->get_file(item))
 				{
+					//client.do_something_to_all([&item](file_client::object_ctype& item2) {if (0 != item2->id()) item2->get_file(item);});
 					//if you always return false, do_something_to_one will be equal to do_something_to_all.
 					client.do_something_to_one([&item](file_client::object_ctype& item2)->bool {if (0 != item2->id()) item2->get_file(item); return false;});
 					client.start();

@@ -40,20 +40,16 @@ public:
 
 		if (TRANS_IDLE != state)
 			return false;
-		else if (NULL == file)
-		{
-			if (0 == id())
-				file = fopen(file_name.data(), "w+b");
-			else
-				file = fopen(file_name.data(), "r+b");
 
-			if (NULL == file)
-			{
-				printf("can't create file %s.\n", file_name.data());
-				return false;
-			}
-			else if (0 == id())
-				return true;
+		if (0 == id())
+			file = fopen(file_name.data(), "w+b");
+		else
+			file = fopen(file_name.data(), "r+b");
+
+		if (NULL == file)
+		{
+			printf("can't create file %s.\n", file_name.data());
+			return false;
 		}
 
 		std::string order("\0", ORDER_LEN);

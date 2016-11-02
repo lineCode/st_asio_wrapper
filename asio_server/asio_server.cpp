@@ -233,7 +233,7 @@ int main(int argc, const char* argv[])
 			if (!msg.empty())
 				server_.do_something_to_all([&msg](st_server_base<normal_server_socket>::object_ctype& item) {item->direct_send_msg(msg);});
 
-			//if asio_client is using stream_unpacker
+			//if asio_client is using stream_unpacker, we don't need to pack message, just send it.
 //			if (!str.empty())
 //				server_.do_something_to_all([&str](st_server_base<normal_server_socket>::object_ctype& item) {item->direct_send_msg(str);});
 		}

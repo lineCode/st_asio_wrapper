@@ -235,7 +235,7 @@ int main(int argc, const char* argv[])
 			if (p.pack_msg(msg, str.data(), str.size() + 1))
 				server_.do_something_to_all(boost::bind((bool (normal_server_socket::*)(packer::msg_ctype&, bool)) &normal_server_socket::direct_send_msg, _1, boost::cref(msg), false));
 
-			//if asio_client is using stream_unpacker
+			//if asio_client is using stream_unpacker, we don't need to pack message, just send it.
 //			if (!str.empty())
 //				server_.do_something_to_all(boost::bind((bool (normal_server_socket::*)(packer::msg_ctype&, bool)) &normal_server_socket::direct_send_msg, _1, boost::cref(str), false));
 		}
