@@ -72,7 +72,8 @@ protected:
 			if (ST_THIS reconnecting && !ST_THIS is_connected())
 				ST_THIS lowest_layer().async_connect(ST_THIS server_addr, ST_THIS make_handler_error([this](const boost::system::error_code& ec) {ST_THIS connect_handler(ec);}));
 			else if (!authorized_)
-				ST_THIS next_layer().async_handshake(boost::asio::ssl::stream_base::client, ST_THIS make_handler_error([this](const boost::system::error_code& ec) {ST_THIS handshake_handler(ec);}));
+				ST_THIS next_layer().async_handshake(boost::asio::ssl::stream_base::client,
+					ST_THIS make_handler_error([this](const boost::system::error_code& ec) {ST_THIS handshake_handler(ec);}));
 			else
 				ST_THIS do_recv_msg();
 
