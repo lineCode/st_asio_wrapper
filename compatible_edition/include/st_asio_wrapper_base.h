@@ -166,7 +166,8 @@ public:
 	using typename i_packer<MsgType>::msg_type;
 	using typename i_packer<MsgType>::msg_ctype;
 
-	virtual bool pack_msg(msg_type& msg, const char* const pstr[], const size_t len[], size_t num, bool native = false) {assert(false); return false;}
+	//'typename dummy_packer::msg_type' can be 'msg_type', using full name is just to satisy old gcc (at least, gcc 4.1 will complain)
+	virtual bool pack_msg(typename dummy_packer::msg_type& msg, const char* const pstr[], const size_t len[], size_t num, bool native = false) {assert(false); return false;}
 };
 
 //unpacker concept

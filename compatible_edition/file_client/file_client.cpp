@@ -76,7 +76,7 @@ int main(int argc, const char* argv[])
 				printf("transfer %s begin.\n", iter->data());
 				if (client.find(0)->get_file(*iter))
 				{
-					client.do_something_to_all(boost::lambda::if_then(0 != boost::lambda::bind((boost::uint_fast64_t (file_socket::*)() const) &file_socket::id, *boost::lambda::_1),
+					client.do_something_to_all(boost::lambda::if_then(0U != boost::lambda::bind((boost::uint_fast64_t (file_socket::*)() const) &file_socket::id, *boost::lambda::_1),
 						boost::lambda::bind(&file_socket::get_file, *boost::lambda::_1, *iter)));
 					client.start();
 

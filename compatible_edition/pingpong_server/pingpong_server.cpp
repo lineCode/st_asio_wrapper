@@ -89,7 +89,7 @@ protected:
 class echo_server : public st_server_base<echo_socket>
 {
 public:
-	echo_server(st_service_pump& service_pump_) : st_server_base(service_pump_) {}
+	echo_server(st_service_pump& service_pump_) : st_server_base<echo_socket>(service_pump_) {}
 
 	statistic get_statistic()
 	{
