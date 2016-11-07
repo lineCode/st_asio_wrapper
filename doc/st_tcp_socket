@@ -1,4 +1,4 @@
-
+﻿
 #ifndef ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION
 #define ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION	5 //seconds, maximum duration while graceful shutdown
 #endif

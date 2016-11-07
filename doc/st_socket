@@ -1,4 +1,4 @@
-
+﻿
 #ifndef ST_ASIO_DELAY_CLOSE
 #define ST_ASIO_DELAY_CLOSE	0 //seconds, guarantee 100% safety when reusing or freeing this st_socket
 #endif
