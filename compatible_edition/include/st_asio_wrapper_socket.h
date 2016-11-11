@@ -49,8 +49,7 @@ protected:
 
 	st_socket(boost::asio::io_service& io_service_) : st_timer(io_service_), _id(-1), next_layer_(io_service_), packer_(boost::make_shared<Packer>()),
 		send_atomic(0), dispatch_atomic(0), started_(false), start_atomic(0) {reset_state();}
-	template<typename Arg>
-	st_socket(boost::asio::io_service& io_service_, Arg& arg) : st_timer(io_service_), _id(-1), next_layer_(io_service_, arg), packer_(boost::make_shared<Packer>()),
+	template<typename Arg> st_socket(boost::asio::io_service& io_service_, Arg& arg) : st_timer(io_service_), _id(-1), next_layer_(io_service_, arg), packer_(boost::make_shared<Packer>()),
 		send_atomic(0), dispatch_atomic(0), started_(false), start_atomic(0) {reset_state();}
 
 	void reset()

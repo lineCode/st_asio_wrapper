@@ -43,9 +43,10 @@ protected:
 
 	enum shutdown_states {NONE, FORCE, GRACEFUL};
 
-	st_tcp_socket_base(boost::asio::io_service& io_service_) : super(io_service_), unpacker_(boost::make_shared<Unpacker>()), shutdown_state(shutdown_states::NONE) {}
-	template<typename Arg>
-	st_tcp_socket_base(boost::asio::io_service& io_service_, Arg& arg) : super(io_service_, arg), unpacker_(boost::make_shared<Unpacker>()), shutdown_state(shutdown_states::NONE) {}
+	st_tcp_socket_base(boost::asio::io_service& io_service_) : super(io_service_), unpacker_(boost::make_shared<Unpacker>()),
+		shutdown_state(shutdown_states::NONE), shutdown_atomic(0) {}
+	template<typename Arg> st_tcp_socket_base(boost::asio::io_service& io_service_, Arg& arg) : super(io_service_, arg), unpacker_(boost::make_shared<Unpacker>()),
+		shutdown_state(shutdown_states::NONE), shutdown_atomic(0) {}
 
 public:
 	virtual bool obsoleted() {return !is_shutting_down() && super::obsoleted();}
@@ -178,7 +179,9 @@ protected:
 
 	void shutdown()
 	{
-		boost::unique_lock<boost::shared_mutex> lock(shutdown_mutex);
+		scope_atomic_lock<> lock(shutdown_atomic);
+		if (!lock.locked())
+			return;
 
 		shutdown_state = shutdown_states::FORCE;
 		ST_THIS stop_all_timer();
@@ -256,9 +259,9 @@ private:
 protected:
 	boost::container::list<typename super::in_msg> last_send_msg;
 	boost::shared_ptr<i_unpacker<out_msg_type>> unpacker_;
-	shutdown_states shutdown_state;
 
-	boost::shared_mutex shutdown_mutex;
+	shutdown_states shutdown_state;
+	st_atomic_size_t shutdown_atomic;
 };
 
 } //namespace
