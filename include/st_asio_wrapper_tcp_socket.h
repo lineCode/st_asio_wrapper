@@ -182,8 +182,6 @@ protected:
 
 		shutdown_state = shutdown_states::FORCE;
 		ST_THIS stop_all_timer();
-		ST_THIS started_ = false;
-//		reset_state();
 
 		if (ST_THIS lowest_layer().is_open())
 		{

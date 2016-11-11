@@ -46,9 +46,11 @@ protected:
 	static const tid TIMER_DELAY_CLOSE = TIMER_BEGIN + 2;
 	static const tid TIMER_END = TIMER_BEGIN + 10;
 
-	st_socket(boost::asio::io_service& io_service_) : st_timer(io_service_), _id(-1), next_layer_(io_service_), packer_(boost::make_shared<Packer>()), started_(false) {reset_state();}
+	st_socket(boost::asio::io_service& io_service_) : st_timer(io_service_), _id(-1), next_layer_(io_service_), packer_(boost::make_shared<Packer>()),
+		send_atomic(0), dispatch_atomic(0), started_(false), start_atomic(0) {reset_state();}
 	template<typename Arg>
-	st_socket(boost::asio::io_service& io_service_, Arg& arg) : st_timer(io_service_), _id(-1), next_layer_(io_service_, arg), packer_(boost::make_shared<Packer>()), started_(false) {reset_state();}
+	st_socket(boost::asio::io_service& io_service_, Arg& arg) : st_timer(io_service_), _id(-1), next_layer_(io_service_, arg), packer_(boost::make_shared<Packer>()),
+		send_atomic(0), dispatch_atomic(0), started_(false), start_atomic(0) {reset_state();}
 
 	void reset()
 	{
@@ -65,7 +67,6 @@ protected:
 
 		sending = paused_sending = false;
 		dispatching = paused_dispatching = congestion_controlling = false;
-//		started_ = false;
 	}
 
 	void clear_buffer()
@@ -91,9 +92,12 @@ public:
 	bool started() const {return started_;}
 	void start()
 	{
-		boost::unique_lock<boost::shared_mutex> lock(start_mutex);
 		if (!started_)
-			started_ = do_start();
+		{
+			scope_atomic_lock<> lock(start_atomic);
+			if (!started_ && lock.locked())
+				started_ = do_start();
+		}
 	}
 
 	//return false if send buffer is empty or sending not allowed or io_service stopped
@@ -101,8 +105,8 @@ public:
 	{
 		if (!sending)
 		{
-			boost::unique_lock<boost::shared_mutex> lock(send_mutex);
-			if (!sending)
+			scope_atomic_lock<> lock(send_atomic);
+			if (!sending && lock.locked())
 			{
 				sending = true;
 				lock.unlock();
@@ -202,13 +206,18 @@ protected:
 	virtual void on_all_msg_send(InMsgType& msg) {}
 #endif
 
-	//subclass notify st_socket the shutdown event.
+	//subclass notify st_socket the shutdown event, not thread safe
 	void close()
 	{
-		if (is_closable())
+		if (started_)
 		{
-			set_async_calling(true);
-			set_timer(TIMER_DELAY_CLOSE, ST_ASIO_DELAY_CLOSE * 1000 + 50, [this](tid id)->bool {return ST_THIS timer_handler(id);});
+			started_ = false;
+
+			if (is_closable())
+			{
+				set_async_calling(true);
+				set_timer(TIMER_DELAY_CLOSE, ST_ASIO_DELAY_CLOSE * 1000 + 50, [this](tid id)->bool {return ST_THIS timer_handler(id);});
+			}
 		}
 	}
 
@@ -250,8 +259,8 @@ protected:
 	{
 		if (!dispatching)
 		{
-			boost::unique_lock<boost::shared_mutex> lock(dispatch_mutex);
-			if (!dispatching)
+			scope_atomic_lock<> lock(dispatch_atomic);
+			if (!dispatching && lock.locked())
 			{
 				dispatching = true;
 				lock.unlock();
@@ -308,7 +317,7 @@ private:
 	//please do not change id at runtime via the following function, except this st_socket is not managed by st_object_pool,
 	//it should only be used by st_object_pool when reusing or creating new st_socket.
 	template<typename Object> friend class st_object_pool;
-	void id(uint_fast64_t id) {assert(!started_); if (started_) unified_out::error_out("id is unchangeable!"); else _id = id;}
+	void id(uint_fast64_t id) {_id = id;}
 
 	bool timer_handler(tid id)
 	{
@@ -383,12 +392,12 @@ protected:
 	//st_socket will delay 50 milliseconds(non-blocking) to invoke handle_msg() again, and now, as you known, temp_msg_buffer is used to hold these msgs temporarily.
 
 	bool sending, paused_sending;
-	boost::shared_mutex send_mutex;
+	st_atomic_size_t send_atomic;
 	bool dispatching, paused_dispatching, congestion_controlling;
-	boost::shared_mutex dispatch_mutex;
+	st_atomic_size_t dispatch_atomic;
 
 	bool started_; //has started or not
-	boost::shared_mutex start_mutex;
+	st_atomic_size_t start_atomic;
 
 	struct statistic stat;
 	typename statistic::stat_time recv_idle_begin_time;

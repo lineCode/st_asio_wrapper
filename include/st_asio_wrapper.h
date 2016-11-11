@@ -47,7 +47,7 @@
  * Support optional timers (deadline_timer, steady_timer and system_timer).
  * Split ext/st_asio_wrapper_net.h into ext/st_asio_wrapper_client.h, ext/st_asio_wrapper_server.h and ext/st_asio_wrapper_udp.h.
  * Add virtual function st_server_base::on_accept_error, it controls whether to continue the acception or not when error occurred.
- * 
+ *
  * 2016.9.22	version 1.2.0
  * Add st_socket::on_close() virtual function, if you defined ST_ASIO_ENHANCED_STABILITY macro, st_asio_wrapper guarantee this is the
  *  last invocation on this st_socket, you can free any resources that belong to this st_socket, except this st_socket itself, because
@@ -98,6 +98,9 @@
  * Improve efficiency in scenarios of low throughput like pingpong test.
  * Replaceable packer/unpacker now support replaceable_buffer (an alias of auto_buffer) and shared_buffer to be their message type.
  * Move class statistic and obj_with_begin_time out of st_socket to reduce template tiers.
+ *
+ * 2016.xx.xx	version 1.1.3
+ * Introduce lock-free mechanism for some appropriate logics (many requesters, only one can succeed, others will fail rather than wait).
  *
  */
 
