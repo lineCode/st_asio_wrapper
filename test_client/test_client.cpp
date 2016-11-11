@@ -497,7 +497,7 @@ int main(int argc, const char* argv[])
 			if (0 == model)
 				send_msg_one_by_one(client, msg_num, msg_len, msg_fill);
 			else
-				puts("if ASCS_WANT_MSG_SEND_NOTIFY defined, only support model 0!");
+				puts("if ST_ASIO_WANT_MSG_SEND_NOTIFY defined, only support model 0!");
 #else
 			if (0 == model)
 				send_msg_concurrently(client, msg_num, msg_len, msg_fill);

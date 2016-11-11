@@ -125,6 +125,9 @@ public:
 			return false;
 		lock.unlock();
 
+		//items in timer_can not locked
+		iter->status = timer_info::TIMER_OK;
+
 		start_timer(*iter);
 		return true;
 	}
@@ -152,15 +155,20 @@ protected:
 
 	void start_timer(timer_cinfo& ti)
 	{
+		assert(timer_info::TIMER_OK == ti.status);
+
 		ti.timer->expires_from_now(milliseconds(ti.milliseconds));
 		ti.timer->async_wait(make_handler_error(boost::bind(&st_timer::timer_handler, this, boost::asio::placeholders::error, boost::cref(ti))));
 	}
 
 	void stop_timer(timer_info& ti)
 	{
-		boost::system::error_code ec;
-		ti.timer->cancel(ec);
-		ti.status = timer_info::TIMER_CANCELED;
+		if (timer_info::TIMER_OK == ti.status) //enable stopping timers that has been stopped
+		{
+			boost::system::error_code ec;
+			ti.timer->cancel(ec);
+			ti.status = timer_info::TIMER_CANCELED;
+		}
 	}
 
 	void timer_handler(const boost::system::error_code& ec, timer_cinfo& ti)
@@ -179,5 +187,5 @@ private:
 
 } //namespace
 
-#endif /* ifndef ST_ASIO_WRAPPER_TIMER_H_ */
+#endif /* ST_ASIO_WRAPPER_TIMER_H_ */
 

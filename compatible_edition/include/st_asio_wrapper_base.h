@@ -24,11 +24,15 @@
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include <boost/version.hpp>
 #include <boost/date_time.hpp>
 #include <boost/smart_ptr.hpp>
 #include "boost/lambda/lambda.hpp"
 #include "boost/lambda/bind.hpp"
 #include "boost/lambda/if.hpp"
+#if BOOST_VERSION >= 105300
+#include <boost/atomic.hpp>
+#endif
 
 #include "st_asio_wrapper_container.h"
 
@@ -52,6 +56,50 @@
 
 namespace st_asio_wrapper
 {
+
+#if BOOST_VERSION >= 105300
+typedef boost::atomic_uint_fast64_t st_atomic_uint_fast64;
+typedef boost::atomic_size_t st_atomic_size_t;
+#else
+template <typename T>
+class st_atomic
+{
+public:
+	st_atomic() : data(0) {}
+	st_atomic(const T& _data) : data(_data) {}
+	T operator++() {boost::unique_lock<boost::shared_mutex> lock(data_mutex); return ++data;}
+	//deliberately omitted operator++(int)
+	T operator+=(const T& value) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); return data += value;}
+	T operator--() {boost::unique_lock<boost::shared_mutex> lock(data_mutex); return --data;}
+	//deliberately omitted operator--(int)
+	T operator-=(const T& value) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); return data -= value;}
+	T operator=(const T& value) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); return data = value;}
+	operator T() const {return data;}
+
+private:
+	T data;
+	boost::shared_mutex data_mutex;
+};
+typedef st_atomic<boost::uint_fast64_t> st_atomic_uint_fast64;
+typedef st_atomic<size_t> st_atomic_size_t;
+#endif
+
+template<typename atomic_type = st_atomic_size_t>
+class scope_atomic_lock : public boost::noncopyable
+{
+public:
+	scope_atomic_lock(atomic_type& atomic_) : added(false), atomic(atomic_) {lock();} //atomic_ must has been initialized to zero
+	~scope_atomic_lock() {unlock();}
+
+	void lock() {if (!added) _locked = 1 == ++atomic; added = true;}
+	void unlock() {if (added) --atomic; _locked = false, added = false;}
+	bool locked() const {return _locked;}
+
+private:
+	bool added;
+	bool _locked;
+	atomic_type& atomic;
+};
 
 class st_service_pump;
 class st_timer;

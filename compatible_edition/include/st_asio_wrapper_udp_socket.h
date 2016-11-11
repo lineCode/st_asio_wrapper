@@ -174,8 +174,6 @@ protected:
 		boost::unique_lock<boost::shared_mutex> lock(shutdown_mutex);
 
 		ST_THIS stop_all_timer();
-		ST_THIS started_ = false;
-//		reset_state();
 
 		if (ST_THIS lowest_layer().is_open())
 		{

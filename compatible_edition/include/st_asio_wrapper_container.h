@@ -62,7 +62,6 @@ public:
 	//lockable, dummy
 	void lock() const {}
 	void unlock() const {}
-	bool idle() const {return true;} //locked or not
 };
 
 class lockable
@@ -73,7 +72,6 @@ public:
 	//lockable
 	void lock() {mutex.lock();}
 	void unlock() {mutex.unlock();}
-	bool idle() {boost::unique_lock<boost::shared_mutex> lock(mutex, boost::try_to_lock); return lock.owns_lock();} //locked or not
 
 private:
 	boost::shared_mutex mutex;
