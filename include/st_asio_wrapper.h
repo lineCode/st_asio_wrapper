@@ -99,16 +99,23 @@
  * Replaceable packer/unpacker now support replaceable_buffer (an alias of auto_buffer) and shared_buffer to be their message type.
  * Move class statistic and obj_with_begin_time out of st_socket to reduce template tiers.
  *
- * 2016.xx.xx	version 1.1.3
+ * 2016.xx.xx	version 1.3.2
+ * Use ST_ASIO_DELAY_CLOSE instead of ST_ASIO_ENHANCED_STABILITY macro to control delay close duration,
+ *  0 is an equivalent of defining ST_ASIO_ENHANCED_STABILITY, other values keep the same meanings as before.
+ * Move st_socket::closing related logic to st_object.
+ * Make st_socket::id(uint_fast64_t) private to avoid changing IDs by users.
+ * Call close at the end of shutdown function, just for safety.
  * Introduce lock-free mechanism for some appropriate logics (many requesters, only one can succeed, others will fail rather than wait).
+ * Remove all mutex (except mutex in st_object_pool, st_service_pump, lock_queue and st_udp_socket).
+ * Sharply simplified st_timer class.
  *
  */
 
 #ifndef ST_ASIO_WRAPPER_H_
 #define ST_ASIO_WRAPPER_H_
 
-#define ST_ASIO_WRAPPER_VER		10301	//[x]xyyzz -> [x]x.[y]y.[z]z
-#define ST_ASIO_WRAPPER_VERSION	"1.3.1"
+#define ST_ASIO_WRAPPER_VER		10302	//[x]xyyzz -> [x]x.[y]y.[z]z
+#define ST_ASIO_WRAPPER_VERSION	"1.3.2"
 
 #ifdef _MSC_VER
 	static_assert(_MSC_VER >= 1600, "st_asio_wrapper must be compiled with Visual C++ 10.0 or higher.");

@@ -32,7 +32,7 @@ namespace st_asio_wrapper
 //
 //suppose you have more than one service thread(see st_service_pump for service thread number control), then:
 //for same st_timer: same timer, on_timer is called sequentially
-//for same st_timer: different timer, on_timer is called concurrently
+//for same st_timer: distinct timer, on_timer is called concurrently
 //for distinct st_timer: on_timer is always called concurrently
 class st_timer : public st_object
 {
