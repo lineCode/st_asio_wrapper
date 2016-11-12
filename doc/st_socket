@@ -10,7 +10,7 @@ namespace st_asio_wrapper
 template<typename Socket, typename Packer, typename Unpacker, typename InMsgType, typename OutMsgType,
 	template<typename, typename> class InQueue, template<typename> class InContainer,
 	template<typename, typename> class OutQueue, template<typename> class OutContainer>
-class socket: public timer
+class st_socket: public st_timer
 {
 protected:
 	typedef obj_with_begin_time<InMsgType> in_msg;
@@ -18,7 +18,7 @@ protected:
 	typedef InQueue<in_msg, InContainer<in_msg>> in_container_type;
 	typedef OutQueue<out_msg, OutContainer<out_msg>> out_container_type;
 
-	static const tid TIMER_BEGIN = timer::TIMER_END;
+	static const tid TIMER_BEGIN = st_timer::TIMER_END;
 	static const tid TIMER_HANDLE_MSG = TIMER_BEGIN;
 	static const tid TIMER_DISPATCH_MSG = TIMER_BEGIN + 1;
 	static const tid TIMER_DELAY_CLOSE = TIMER_BEGIN + 2;
@@ -173,7 +173,7 @@ private:
 	void id(uint_fast64_t id);
 设置id，注意使用者不可设置id，只有st_socket的创建者（st_object_pool或者其继承者）才可设置id，除非这个st_socket没有被任何对象池管理。
 
-	bool timer_handler(unsigned char id);
+	bool timer_handler(tid id);
 处理所有定时器
 
 	void msg_handler();
@@ -198,13 +198,13 @@ protected:
 里面的消息全部被处理掉，或者移到了recv_msg_buffer，st_socket会周期性的做以上尝试。
 
 	bool sending, paused_sending;
-	std::shared_mutex send_mutex;
+	st_atomic_size_t send_atomic;
 	bool dispatching, paused_dispatching, congestion_controlling;
-	std::shared_mutex dispatch_mutex;
+	st_atomic_size_t dispatch_atomic;
 内部使用的一些状态，看名字应该能猜到其意思。
 
 	bool started_; //has started or not
-	boost::shared_mutex start_mutex;
+	st_atomic_size_t start_atomic;
 是否已经开始，开始的概念由子类具体实现，st_socket只是记录是否已经调用过start函数而已。
 
 	struct statistic stat;
