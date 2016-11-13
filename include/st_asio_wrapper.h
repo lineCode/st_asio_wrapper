@@ -99,7 +99,7 @@
  * Replaceable packer/unpacker now support replaceable_buffer (an alias of auto_buffer) and shared_buffer to be their message type.
  * Move class statistic and obj_with_begin_time out of st_socket to reduce template tiers.
  *
- * 2016.xx.xx	version 1.3.2
+ * 2016.11.13	version 1.3.2
  * Use ST_ASIO_DELAY_CLOSE instead of ST_ASIO_ENHANCED_STABILITY macro to control delay close duration,
  *  0 is an equivalent of defining ST_ASIO_ENHANCED_STABILITY, other values keep the same meanings as before.
  * Move st_socket::closing related logic to st_object.
