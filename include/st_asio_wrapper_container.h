@@ -32,7 +32,20 @@ namespace st_asio_wrapper
 {
 
 //st_asio_wrapper requires that container must take one and only one template argument.
+#if !defined(_MSC_VER) || _MSC_VER >= 1800
 template <class T> using list = boost::container::list<T>;
+#else
+template <class T>
+class list : public boost::container::list<T>
+{
+protected:
+	typedef boost::container::list<T> super;
+
+public:
+	list() {}
+	list(size_t size) : super(size) {}
+};
+#endif
 
 class dummy_lockable
 {
@@ -90,8 +103,32 @@ public:
 	bool try_dequeue_(T& item) {if (this->empty()) return false; item.swap(this->front()); this->pop_front(); return true;}
 };
 
+#if !defined(_MSC_VER) || _MSC_VER >= 1800
 template<typename T, typename Container> using non_lock_queue = queue<T, Container, dummy_lockable>; //totally not thread safe
 template<typename T, typename Container> using lock_queue = queue<T, Container, lockable>;
+#else
+template<typename T, typename Container>
+class non_lock_queue : public queue<T, Container, dummy_lockable> //totally not thread safe
+{
+protected:
+	typedef queue<T, Container, dummy_lockable> super;
+
+public:
+	non_lock_queue() {}
+	non_lock_queue(size_t size) : super(size) {}
+};
+
+template<typename T, typename Container>
+class lock_queue : public queue<T, Container, lockable>
+{
+protected:
+	typedef queue<T, Container, lockable> super;
+
+public:
+	lock_queue() {}
+	lock_queue(size_t size) : super(size) {}
+};
+#endif
 
 } //namespace
 

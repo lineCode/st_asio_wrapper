@@ -45,7 +45,7 @@ public:
 	void disconnect() {force_shutdown();}
 	void force_shutdown()
 	{
-		if (super::shutdown_states::FORCE != ST_THIS shutdown_state)
+		if (super::FORCE != ST_THIS shutdown_state)
 			show_info("server link:", "been shut down.");
 
 		super::force_shutdown();
@@ -103,7 +103,7 @@ protected:
 #else
 		server.del_client(boost::dynamic_pointer_cast<st_timer>(ST_THIS shared_from_this()));
 #endif
-		ST_THIS shutdown_state = super::shutdown_states::NONE;
+		ST_THIS shutdown_state = super::NONE;
 	}
 
 private:
@@ -111,7 +111,7 @@ private:
 	{
 		assert(TIMER_ASYNC_SHUTDOWN == id);
 
-		if (super::shutdown_states::GRACEFUL == ST_THIS shutdown_state)
+		if (super::GRACEFUL == ST_THIS shutdown_state)
 		{
 			--loop_num;
 			if (loop_num > 0)
