@@ -373,7 +373,7 @@ struct statistic
 	stat_duration send_delay_sum; //from send_(native_)msg (exclude msg packing) to asio::async_write
 	stat_duration send_time_sum; //from asio::async_write to send_handler
 	//above two items indicate your network's speed or load
-	stat_duration pack_time_sum;
+	stat_duration pack_time_sum; //st_udp_socket will not gather this item
 
 	//recv corresponding statistic
 	uint_fast64_t recv_msg_sum; //include msgs in receiving buffer
@@ -385,7 +385,7 @@ struct statistic
 	stat_duration handle_time_1_sum; //on_msg consumed time, this indicate the efficiency of msg handling
 #endif
 	stat_duration handle_time_2_sum; //on_msg_handle consumed time, this indicate the efficiency of msg handling
-	stat_duration unpack_time_sum;
+	stat_duration unpack_time_sum; //st_udp_socket will not gather this item
 };
 
 class auto_duration
@@ -549,9 +549,7 @@ bool FUNNAME(const boost::asio::ip::udp::endpoint& peer_addr, const char* const 
 { \
 	if (!can_overflow && !ST_THIS is_send_buffer_available()) \
 		return false; \
-	auto_duration dur(ST_THIS stat.pack_time_sum); \
 	in_msg_type msg(peer_addr, ST_THIS packer_->pack_msg(pstr, len, num, NATIVE)); \
-	dur.end(); \
 	return ST_THIS do_direct_send_msg(std::move(msg)); \
 } \
 UDP_SEND_MSG_CALL_SWITCH(FUNNAME, bool)
