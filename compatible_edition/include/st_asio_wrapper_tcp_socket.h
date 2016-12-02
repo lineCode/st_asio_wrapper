@@ -208,11 +208,9 @@ private:
 		if (!ec && bytes_transferred > 0)
 		{
 			typename Unpacker::container_type temp_msg_can;
-			bool unpack_ok;
-			{
-				auto_duration dur(ST_THIS stat.unpack_time_sum);
-				unpack_ok = unpacker_->parse_msg(bytes_transferred, temp_msg_can);
-			}
+			auto_duration dur(ST_THIS stat.unpack_time_sum);
+			bool unpack_ok = unpacker_->parse_msg(bytes_transferred, temp_msg_can);
+			dur.end();
 			size_t msg_num = temp_msg_can.size();
 			if (msg_num > 0)
 			{
