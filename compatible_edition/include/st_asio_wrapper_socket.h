@@ -128,6 +128,11 @@ public:
 	void congestion_control(bool enable) {congestion_controlling = enable; unified_out::warning_out("%s congestion control.", enable ? "open" : "close");}
 	bool congestion_control() const {return congestion_controlling;}
 
+	//in st_asio_wrapper, it's thread safe to access stat without mutex, because for a specific member of stat, st_asio_wrapper will never access it concurrently.
+	//in other words, in a specific thread, st_asio_wrapper just access only one member of stat.
+	//but user can access stat out of st_asio_wrapper via get_statistic function, although user can only read it, there's still a potential risk,
+	//so whether it's thread safe or not depends on std::chrono::system_clock::duration.
+	//i can make it thread safe in st_asio_wrapper, but is it worth to do so? this is a problem.
 	const struct statistic& get_statistic() const {return stat;}
 
 	//get or change the packer at runtime
@@ -206,7 +211,7 @@ protected:
 	virtual void on_all_msg_send(InMsgType& msg) {}
 #endif
 
-	//subclass notify st_socket the shutdown event, not thread safe
+	//subclass notify shutdown event, not thread safe
 	void close()
 	{
 		if (started_)
@@ -229,14 +234,12 @@ protected:
 #ifndef ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
 		if (!temp_msg_buffer.empty() && !paused_dispatching && !congestion_controlling)
 		{
-			BOOST_AUTO(begin_time, statistic::local_time());
+			auto_duration(stat.handle_time_1_sum);
 			for (BOOST_AUTO(iter, temp_msg_buffer.begin()); !paused_dispatching && !congestion_controlling && iter != temp_msg_buffer.end();)
 				if (on_msg(*iter))
 					temp_msg_buffer.erase(iter++);
 				else
 					temp_buffer.splice(temp_buffer.end(), temp_msg_buffer, iter++);
-
-			stat.handle_time_1_sum += statistic::local_time() - begin_time;
 		}
 #else
 		temp_buffer.swap(temp_msg_buffer);
