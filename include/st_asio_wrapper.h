@@ -116,7 +116,6 @@
  *
  * 2016.12.6	version 1.3.4
  * Compatible edition support c++0x (11, 14, 17, ...) features too.
- * Add Visual C++ solution and project files (Visual C++ 9.0 for compatible edition, Visual C++ 11.0 for normal edition).
  * Monitor time consumptions for message packing and unpacking.
  * Fix bug: pop_first_pending_send_msg and pop_first_pending_recv_msg cannot compile.
  *
