@@ -23,6 +23,20 @@
 	#error graceful shutdown duration must be bigger than zero.
 #endif
 
+#ifndef ST_ASIO_HEARTBEAT_INTERVAL
+#define ST_ASIO_HEARTBEAT_INTERVAL	5 //second(s)
+#elif ST_ASIO_HEARTBEAT_INTERVAL <= 0
+	#error heartbeat interval must be bigger than zero.
+#endif
+//at every ST_ASIO_HEARTBEAT_INTERVAL second(s), send an OOB data (heartbeat) if no normal messages been sent.
+
+#ifndef ST_ASIO_HEARTBEAT_MAX_ABSENCE
+#define ST_ASIO_HEARTBEAT_MAX_ABSENCE	3 //times of ST_ASIO_HEARTBEAT_INTERVAL
+#elif ST_ASIO_HEARTBEAT_MAX_ABSENCE <= 0
+	#error heartbeat absence must be bigger than zero.
+#endif
+//if no any data (include heartbeats) been received within ST_ASIO_HEARTBEAT_INTERVAL * ST_ASIO_HEARTBEAT_MAX_ABSENCE second(s), shut down the link.
+
 namespace st_asio_wrapper
 {
 
@@ -144,6 +158,8 @@ protected:
 
 			if (!bufs.empty())
 			{
+				last_send_time = time(NULL);
+
 				last_send_msg.front().restart();
 				boost::asio::async_write(ST_THIS next_layer(), bufs,
 					ST_THIS make_handler_error_size(boost::bind(&st_tcp_socket_base::send_handler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)));
@@ -196,6 +212,51 @@ protected:
 		ST_THIS close(); //call this at the end of 'shutdown', it's very important
 	}
 
+	int clean_heartbeat()
+	{
+		int heartbeat_len = 0;
+		BOOST_AUTO(s, ST_THIS lowest_layer().native_handle());
+
+		while (true)
+		{
+#ifdef _WIN32
+			char oob_data;
+			unsigned long no_oob_data = 1;
+			ioctlsocket(s, SIOCATMARK, &no_oob_data);
+			if (0 == no_oob_data && recv(s, &oob_data, 1, MSG_OOB) > 0)
+				++heartbeat_len;
+#else
+			char oob_data[1024];
+			int has_oob_data = 0;
+			int recv_len;
+			ioctl(s, SIOCATMARK, &has_oob_data);
+			if (1 == has_oob_data && (recv_len = recv(s, oob_data, sizeof(oob_data), MSG_OOB)) > 0)
+			{
+				heartbeat_len += recv_len;
+				if (recv_len < (int) sizeof(oob_data))
+					break;
+			}
+#endif
+			else
+				break;
+		}
+
+		if (heartbeat_len > 0)
+			last_recv_time = time(NULL);
+
+		return heartbeat_len;
+	}
+
+	void send_heartbeat(const char c)
+	{
+		time_t now = time(NULL);
+		if (now - last_send_time >= ST_ASIO_HEARTBEAT_INTERVAL)
+		{
+			last_send_time = now;
+			send(ST_THIS lowest_layer().native_handle(), &c, 1, MSG_OOB);
+		}
+	}
+
 private:
 	size_t completion_checker(const boost::system::error_code& ec, size_t bytes_transferred)
 	{
@@ -207,6 +268,8 @@ private:
 	{
 		if (!ec && bytes_transferred > 0)
 		{
+			last_recv_time = time(NULL);
+
 			typename Unpacker::container_type temp_msg_can;
 			auto_duration dur(ST_THIS stat.unpack_time_sum);
 			bool unpack_ok = unpacker_->parse_msg(bytes_transferred, temp_msg_can);
@@ -217,10 +280,10 @@ private:
 				ST_THIS stat.recv_msg_sum += msg_num;
 				ST_THIS temp_msg_buffer.resize(ST_THIS temp_msg_buffer.size() + msg_num);
 				BOOST_AUTO(op_iter, ST_THIS temp_msg_buffer.rbegin());
-				for (BOOST_AUTO(iter, temp_msg_can.rbegin()); iter != temp_msg_can.rend();)
+				for (BOOST_AUTO(iter, temp_msg_can.rbegin()); iter != temp_msg_can.rend(); ++op_iter, ++iter)
 				{
-					ST_THIS stat.recv_byte_sum += (++iter).base()->size();
-					(++op_iter).base()->swap(*iter.base());
+					ST_THIS stat.recv_byte_sum += iter->size();
+					op_iter->swap(*iter);
 				}
 			}
 			ST_THIS handle_msg();
@@ -271,6 +334,9 @@ protected:
 
 	shutdown_states shutdown_state;
 	st_atomic_size_t shutdown_atomic;
+
+	//heartbeat
+	time_t last_send_time, last_recv_time;
 };
 
 } //namespace

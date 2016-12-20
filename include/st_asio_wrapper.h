@@ -119,13 +119,21 @@
  * Monitor time consumptions for message packing and unpacking.
  * Fix bug: pop_first_pending_send_msg and pop_first_pending_recv_msg cannot compile.
  *
+ * 2017.1.1		version 1.3.5
+ * Support heartbeat (via OOB data), it's not closable, but you can set a very long interval if you don't want it,
+ *  see ST_ASIO_HEARTBEAT_INTERVAL macro for more details.
+ * Support scatter-gather buffers when receiving messages, this feature needs modification of i_unpacker, you must explicitly define
+ *  ST_ASIO_SCATTERED_RECV_BUFFER macro to open it, this is just for compatiblity.
+ * Demo test_client support alterable number of sending thread (before, it's a hard code 16).
+ * Fix bug: In very rare cases, messages may get starved and will not be dispatched until arrival of next message.
+ *
  */
 
 #ifndef ST_ASIO_WRAPPER_H_
 #define ST_ASIO_WRAPPER_H_
 
-#define ST_ASIO_WRAPPER_VER		10304	//[x]xyyzz -> [x]x.[y]y.[z]z
-#define ST_ASIO_WRAPPER_VERSION	"1.3.4"
+#define ST_ASIO_WRAPPER_VER		10305	//[x]xyyzz -> [x]x.[y]y.[z]z
+#define ST_ASIO_WRAPPER_VERSION	"1.3.5"
 
 #ifdef _MSC_VER
 	static_assert(_MSC_VER >= 1600, "st_asio_wrapper must be compiled with Visual C++ 10.0 or higher.");

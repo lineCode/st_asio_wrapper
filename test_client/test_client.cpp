@@ -282,12 +282,12 @@ void send_msg_randomly(test_client& client, size_t msg_num, size_t msg_len, char
 	printf("speed: %.0f(*2)kB/s.\n", total_msg_bytes / used_time / 1024);
 }
 
-//use up to 16 (hard code) worker threads to send messages concurrently
-void send_msg_concurrently(test_client& client, size_t msg_num, size_t msg_len, char msg_fill)
+//use up to a specific worker threads to send messages concurrently
+void send_msg_concurrently(test_client& client, size_t send_thread_num, size_t msg_num, size_t msg_len, char msg_fill)
 {
 	check_msg = true;
 	auto link_num = client.size();
-	auto group_num = std::min((size_t) 16, link_num);
+	auto group_num = std::min(send_thread_num, link_num);
 	auto group_link_num = link_num / group_num;
 	auto left_link_num = link_num - group_num * group_link_num;
 	uint64_t total_msg_bytes = msg_num * msg_len * link_num;
@@ -360,7 +360,7 @@ void send_msg_concurrently(test_client& client, size_t msg_num, size_t msg_len, 
 
 int main(int argc, const char* argv[])
 {
-	printf("usage: %s [<service thread number=1> [<port=%d> [<ip=%s> [link num=16]]]]\n", argv[0], ST_ASIO_SERVER_PORT, ST_ASIO_SERVER_IP);
+	printf("usage: %s [<service thread number=1> [<send thread number=8> [<port=%d> [<ip=%s> [link num=16]]]]]\n", argv[0], ST_ASIO_SERVER_PORT, ST_ASIO_SERVER_IP);
 	if (argc >= 2 && (0 == strcmp(argv[1], "--help") || 0 == strcmp(argv[1], "-h")))
 		return 0;
 	else
@@ -368,8 +368,8 @@ int main(int argc, const char* argv[])
 
 	///////////////////////////////////////////////////////////
 	size_t link_num = 16;
-	if (argc > 4)
-		link_num = std::min(ST_ASIO_MAX_OBJECT_NUM, std::max(atoi(argv[4]), 1));
+	if (argc > 5)
+		link_num = std::min(ST_ASIO_MAX_OBJECT_NUM, std::max(atoi(argv[5]), 1));
 
 	printf("exec: %s with " ST_ASIO_SF " links\n", argv[0], link_num);
 	///////////////////////////////////////////////////////////
@@ -379,10 +379,10 @@ int main(int argc, const char* argv[])
 	//test_client means to cooperate with echo server while doing performance test, it will not send msgs back as echo server does,
 	//otherwise, dead loop will occur, network resource will be exhausted.
 
-//	argv[2] = "::1" //ipv6
-//	argv[2] = "127.0.0.1" //ipv4
-	unsigned short port = argc > 2 ? atoi(argv[2]) : ST_ASIO_SERVER_PORT;
-	std::string ip = argc > 3 ? argv[3] : ST_ASIO_SERVER_IP;
+//	argv[4] = "::1" //ipv6
+//	argv[4] = "127.0.0.1" //ipv4
+	std::string ip = argc > 4 ? argv[4] : ST_ASIO_SERVER_IP;
+	unsigned short port = argc > 3 ? atoi(argv[3]) : ST_ASIO_SERVER_PORT;
 
 	//method #1, create and add clients manually.
 	auto client_ptr = client.create_object();
@@ -394,11 +394,15 @@ int main(int argc, const char* argv[])
 	//method #2, add clients first without any arguments, then set the server address.
 	for (size_t i = 1; i < link_num / 2; ++i)
 		client.add_client();
-	client.do_something_to_all([argv, port, &ip](test_client::object_ctype& item) {item->set_server_addr(port, ip);});
+	client.do_something_to_all([port, &ip](test_client::object_ctype& item) {item->set_server_addr(port, ip);});
 
 	//method #3, add clients and set server address in one invocation.
 	for (auto i = std::max((size_t) 1, link_num / 2); i < link_num; ++i)
 		client.add_client(port, ip);
+
+	size_t send_thread_num = 8;
+	if (argc > 2)
+		send_thread_num = (size_t) std::max(1, std::min(16, atoi(argv[2])));
 
 	auto thread_num = 1;
 	if (argc > 1)
@@ -472,22 +476,22 @@ int main(int argc, const char* argv[])
 			char model = 0; //0 broadcast, 1 randomly pick one link per msg
 
 			boost::char_separator<char> sep(" \t");
-			boost::tokenizer<boost::char_separator<char>> tok(str, sep);
-			auto iter = std::begin(tok);
-			if (iter != std::end(tok)) msg_num = std::max((size_t) atoll(iter++->data()), (size_t) 1);
+			boost::tokenizer<boost::char_separator<char>> parameters(str, sep);
+			auto iter = std::begin(parameters);
+			if (iter != std::end(parameters)) msg_num = std::max((size_t) atoll(iter++->data()), (size_t) 1);
 
 #if 0 == PACKER_UNPACKER_TYPE || 1 == PACKER_UNPACKER_TYPE
-			if (iter != std::end(tok)) msg_len = std::min(packer::get_max_msg_size(),
+			if (iter != std::end(parameters)) msg_len = std::min(packer::get_max_msg_size(),
 				std::max((size_t) atoi(iter++->data()), sizeof(size_t))); //include seq
 #elif 2 == PACKER_UNPACKER_TYPE
-			if (iter != std::end(tok)) ++iter;
+			if (iter != std::end(parameters)) ++iter;
 			msg_len = 1024; //we hard code this because we fixedly initialized the length of fixed_length_unpacker to 1024
 #elif 3 == PACKER_UNPACKER_TYPE
-			if (iter != std::end(tok)) msg_len = std::min((size_t) ST_ASIO_MSG_BUFFER_SIZE,
+			if (iter != std::end(parameters)) msg_len = std::min((size_t) ST_ASIO_MSG_BUFFER_SIZE,
 				std::max((size_t) atoi(iter++->data()), sizeof(size_t))); //include seq
 #endif
-			if (iter != std::end(tok)) msg_fill = *iter++->data();
-			if (iter != std::end(tok)) model = *iter++->data() - '0';
+			if (iter != std::end(parameters)) msg_fill = *iter++->data();
+			if (iter != std::end(parameters)) model = *iter++->data() - '0';
 
 			if (0 != model && 1 != model)
 			{
@@ -506,7 +510,7 @@ int main(int argc, const char* argv[])
 				puts("if ST_ASIO_WANT_MSG_SEND_NOTIFY defined, only support model 0!");
 #else
 			if (0 == model)
-				send_msg_concurrently(client, msg_num, msg_len, msg_fill);
+				send_msg_concurrently(client, send_thread_num, msg_num, msg_len, msg_fill);
 			else
 				send_msg_randomly(client, msg_num, msg_len, msg_fill);
 #endif

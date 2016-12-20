@@ -13,12 +13,10 @@
 #ifndef ST_ASIO_WRAPPER_BASE_H_
 #define ST_ASIO_WRAPPER_BASE_H_
 
-#include <time.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdarg.h>
-#include <assert.h>
 
+#include <vector>
 #include <string>
 #include <sstream>
 
@@ -235,6 +233,11 @@ class i_unpacker
 public:
 	typedef MsgType msg_type;
 	typedef const msg_type msg_ctype;
+#ifdef ST_ASIO_SCATTERED_RECV_BUFFER
+	typedef std::vector<boost::asio::mutable_buffers_1> buffer_type;
+#else
+	typedef boost::asio::mutable_buffers_1 buffer_type;
+#endif
 	typedef boost::container::list<msg_type> container_type;
 
 protected:
@@ -244,7 +247,7 @@ public:
 	virtual void reset_state() = 0;
 	virtual bool parse_msg(size_t bytes_transferred, container_type& msg_can) = 0;
 	virtual size_t completion_condition(const boost::system::error_code& ec, size_t bytes_transferred) = 0;
-	virtual boost::asio::mutable_buffers_1 prepare_next_recv() = 0;
+	virtual buffer_type prepare_next_recv() = 0;
 };
 
 template<typename MsgType>
@@ -269,6 +272,7 @@ class i_udp_unpacker
 public:
 	typedef MsgType msg_type;
 	typedef const msg_type msg_ctype;
+	typedef boost::asio::mutable_buffers_1 buffer_type;
 	typedef boost::container::list<udp_msg<msg_type> > container_type;
 
 protected:
@@ -277,7 +281,7 @@ protected:
 public:
 	virtual void reset_state() {}
 	virtual void parse_msg(msg_type& msg, size_t bytes_transferred) = 0;
-	virtual boost::asio::mutable_buffers_1 prepare_next_recv() = 0;
+	virtual buffer_type prepare_next_recv() = 0;
 };
 //unpacker concept
 

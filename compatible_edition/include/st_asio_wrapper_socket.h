@@ -272,7 +272,11 @@ protected:
 				lock.unlock();
 
 				if (!do_dispatch_msg())
+				{
 					dispatching = false;
+					if (!recv_msg_buffer.empty())
+						dispatch_msg(); //just make sure no pending msgs
+				}
 			}
 		}
 
@@ -310,7 +314,9 @@ protected:
 
 	bool do_direct_send_msg(InMsgType& msg)
 	{
-		if (!msg.empty())
+		if (msg.empty())
+			unified_out::error_out("found an empty message, please check your packer.");
+		else
 		{
 			in_msg unused;
 			unused.swap(msg);
@@ -318,6 +324,9 @@ protected:
 			send_msg();
 		}
 
+		//even if we meet an empty message (most likely, this is because message length is too long, or insufficient memory), we still return true, why?
+		//please think about the function safe_send_(native_)msg, if we keep returning false, it will enter a dead loop.
+		//the packer provider has the responsibility to write detailed reasons down when packing message failed.
 		return true;
 	}
 

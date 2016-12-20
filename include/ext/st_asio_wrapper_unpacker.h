@@ -43,7 +43,7 @@ public:
 
 		auto pnext = std::begin(raw_buff);
 		auto unpack_ok = true;
-		while (unpack_ok) //considering stick package problem, we need a loop
+		while (unpack_ok) //considering sticky package problem, we need a loop
 			if ((size_t) -1 != cur_msg_len)
 			{
 				if (cur_msg_len > ST_ASIO_MSG_BUFFER_SIZE || cur_msg_len <= ST_ASIO_HEAD_LEN)
@@ -58,7 +58,7 @@ public:
 				else
 					break;
 			}
-			else if (remain_len >= ST_ASIO_HEAD_LEN) //the msg's head been received, stick package found
+			else if (remain_len >= ST_ASIO_HEAD_LEN) //the msg's head been received, sticky package found
 			{
 				ST_ASIO_HEAD_TYPE head;
 				memcpy(&head, pnext, ST_ASIO_HEAD_LEN);
@@ -87,13 +87,13 @@ public:
 			memcpy(std::begin(raw_buff), pnext, remain_len); //left behind unparsed data
 		}
 
-		//if unpacking failed, successfully parsed msgs will still returned via msg_can(stick package), please note.
+		//if unpacking failed, successfully parsed msgs will still returned via msg_can(sticky package), please note.
 		return unpack_ok;
 	}
 
 	//a return value of 0 indicates that the read operation is complete. a non-zero value indicates the maximum number
 	//of bytes to be read on the next call to the stream's async_read_some function. ---boost::asio::async_read
-	//read as many as possible to reduce asynchronous call-back, and don't forget to handle stick package carefully in parse_msg function.
+	//read as many as possible to reduce asynchronous call-back, and don't forget to handle sticky package carefully in parse_msg function.
 	virtual size_t completion_condition(const boost::system::error_code& ec, size_t bytes_transferred)
 	{
 		if (ec)
@@ -115,11 +115,13 @@ public:
 		//read as many as possible except that we have already got an entire msg
 	}
 
-	virtual boost::asio::mutable_buffers_1 prepare_next_recv()
-	{
-		assert(remain_len < ST_ASIO_MSG_BUFFER_SIZE);
-		return boost::asio::buffer(boost::asio::buffer(raw_buff) + remain_len);
-	}
+#ifdef ST_ASIO_SCATTERED_RECV_BUFFER
+	//this is just to satisfy the compiler, it's not a real scatter-gather buffer,
+	//if you introduce a ring buffer, then you will have the chance to provide a real scatter-gather buffer.
+	virtual buffer_type prepare_next_recv() {assert(remain_len < ST_ASIO_MSG_BUFFER_SIZE); return buffer_type(1, boost::asio::buffer(boost::asio::buffer(raw_buff) + remain_len));}
+#else
+	virtual buffer_type prepare_next_recv() {assert(remain_len < ST_ASIO_MSG_BUFFER_SIZE); return boost::asio::buffer(boost::asio::buffer(raw_buff) + remain_len);}
+#endif
 
 protected:
 	boost::array<char, ST_ASIO_MSG_BUFFER_SIZE> raw_buff;
@@ -132,7 +134,7 @@ class udp_unpacker : public i_udp_unpacker<std::string>
 {
 public:
 	virtual msg_type parse_msg(size_t bytes_transferred) {assert(bytes_transferred <= ST_ASIO_MSG_BUFFER_SIZE); return msg_type(raw_buff.data(), bytes_transferred);}
-	virtual boost::asio::mutable_buffers_1 prepare_next_recv() {return boost::asio::buffer(raw_buff);}
+	virtual buffer_type prepare_next_recv() {return boost::asio::buffer(raw_buff);}
 
 protected:
 	boost::array<char, ST_ASIO_MSG_BUFFER_SIZE> raw_buff;
@@ -159,12 +161,12 @@ public:
 			msg_can.back().raw_buffer(raw_msg);
 		});
 
-		//if unpacking failed, successfully parsed msgs will still returned via msg_can(stick package), please note.
+		//if unpacking failed, successfully parsed msgs will still returned via msg_can(sticky package), please note.
 		return unpack_ok;
 	}
 
 	virtual size_t completion_condition(const boost::system::error_code& ec, size_t bytes_transferred) {return unpacker_.completion_condition(ec, bytes_transferred);}
-	virtual boost::asio::mutable_buffers_1 prepare_next_recv() {return unpacker_.prepare_next_recv();}
+	virtual typename super::buffer_type prepare_next_recv() {return unpacker_.prepare_next_recv();}
 
 protected:
 	unpacker unpacker_;
@@ -187,7 +189,7 @@ public:
 		raw_msg->assign(raw_buff.data(), bytes_transferred);
 		return typename super::msg_type(raw_msg);
 	}
-	virtual boost::asio::mutable_buffers_1 prepare_next_recv() {return boost::asio::buffer(raw_buff);}
+	virtual typename super::buffer_type prepare_next_recv() {return boost::asio::buffer(raw_buff);}
 
 protected:
 	boost::array<char, ST_ASIO_MSG_BUFFER_SIZE> raw_buff;
@@ -256,7 +258,13 @@ public:
 		return 0;
 	}
 
-	virtual boost::asio::mutable_buffers_1 prepare_next_recv() {return raw_buff.empty() ? boost::asio::buffer((char*) &head, ST_ASIO_HEAD_LEN) : boost::asio::buffer(raw_buff.data(), raw_buff.size());}
+	//this is just to satisfy the compiler, it's not a real scatter-gather buffer,
+	//if you introduce a ring buffer, then you will have the chance to provide a real scatter-gather buffer.
+#ifdef ST_ASIO_SCATTERED_RECV_BUFFER
+	virtual buffer_type prepare_next_recv() {return buffer_type(1, raw_buff.empty() ? boost::asio::buffer((char*) &head, ST_ASIO_HEAD_LEN) : boost::asio::buffer(raw_buff.data(), raw_buff.size()));}
+#else
+	virtual buffer_type prepare_next_recv() {return raw_buff.empty() ? boost::asio::buffer((char*) &head, ST_ASIO_HEAD_LEN) : boost::asio::buffer(raw_buff.data(), raw_buff.size());}
+#endif
 
 private:
 	ST_ASIO_HEAD_TYPE head;
@@ -296,7 +304,13 @@ public:
 	virtual size_t completion_condition(const boost::system::error_code& ec, size_t bytes_transferred)
 		{return ec || bytes_transferred == raw_buff.size() ? 0 : boost::asio::detail::default_max_transfer_size;}
 
-	virtual boost::asio::mutable_buffers_1 prepare_next_recv() {raw_buff.assign(_fixed_length); return boost::asio::buffer(raw_buff.data(), raw_buff.size());}
+	//this is just to satisfy the compiler, it's not a real scatter-gather buffer,
+	//if you introduce a ring buffer, then you will have the chance to provide a real scatter-gather buffer.
+#ifdef ST_ASIO_SCATTERED_RECV_BUFFER
+	virtual buffer_type prepare_next_recv() {raw_buff.assign(_fixed_length); return buffer_type(1, boost::asio::buffer(raw_buff.data(), raw_buff.size()));}
+#else
+	virtual buffer_type prepare_next_recv() {raw_buff.assign(_fixed_length); return boost::asio::buffer(raw_buff.data(), raw_buff.size());}
+#endif
 
 private:
 	basic_buffer raw_buff;
@@ -388,13 +402,13 @@ public:
 		else if (unpack_ok && remain_len > 0)
 			memcpy(std::begin(raw_buff), pnext, remain_len); //left behind unparsed msg
 
-		//if unpacking failed, successfully parsed msgs will still returned via msg_can(stick package), please note.
+		//if unpacking failed, successfully parsed msgs will still returned via msg_can(sticky package), please note.
 		return unpack_ok;
 	}
 
 	//a return value of 0 indicates that the read operation is complete. a non-zero value indicates the maximum number
 	//of bytes to be read on the next call to the stream's async_read_some function. ---boost::asio::async_read
-	//read as many as possible to reduce asynchronous call-back, and don't forget to handle stick package carefully in parse_msg function.
+	//read as many as possible to reduce asynchronous call-back, and don't forget to handle sticky package carefully in parse_msg function.
 	virtual size_t completion_condition(const boost::system::error_code& ec, size_t bytes_transferred)
 	{
 		if (ec)
@@ -406,11 +420,13 @@ public:
 		return peek_msg(data_len, std::begin(raw_buff));
 	}
 
-	virtual boost::asio::mutable_buffers_1 prepare_next_recv()
-	{
-		assert(remain_len < ST_ASIO_MSG_BUFFER_SIZE);
-		return boost::asio::buffer(boost::asio::buffer(raw_buff) + remain_len);
-	}
+	//this is just to satisfy the compiler, it's not a real scatter-gather buffer,
+	//if you introduce a ring buffer, then you will have the chance to provide a real scatter-gather buffer.
+#ifdef ST_ASIO_SCATTERED_RECV_BUFFER
+	virtual buffer_type prepare_next_recv() {assert(remain_len < ST_ASIO_MSG_BUFFER_SIZE); return buffer_type(1, boost::asio::buffer(boost::asio::buffer(raw_buff) + remain_len));}
+#else
+	virtual buffer_type prepare_next_recv() {assert(remain_len < ST_ASIO_MSG_BUFFER_SIZE); return boost::asio::buffer(boost::asio::buffer(raw_buff) + remain_len);}
+#endif
 
 private:
 	boost::array<char, ST_ASIO_MSG_BUFFER_SIZE> raw_buff;
@@ -437,7 +453,14 @@ public:
 	}
 
 	virtual size_t completion_condition(const boost::system::error_code& ec, size_t bytes_transferred) {return ec || bytes_transferred > 0 ? 0 : boost::asio::detail::default_max_transfer_size;}
-	virtual boost::asio::mutable_buffers_1 prepare_next_recv() {return boost::asio::buffer(raw_buff);}
+
+	//this is just to satisfy the compiler, it's not a real scatter-gather buffer,
+	//if you introduce a ring buffer, then you will have the chance to provide a real scatter-gather buffer.
+#ifdef ST_ASIO_SCATTERED_RECV_BUFFER
+	virtual buffer_type prepare_next_recv() {return buffer_type(1, boost::asio::buffer(raw_buff));}
+#else
+	virtual buffer_type prepare_next_recv() {return boost::asio::buffer(raw_buff);}
+#endif
 
 protected:
 	boost::array<char, ST_ASIO_MSG_BUFFER_SIZE> raw_buff;

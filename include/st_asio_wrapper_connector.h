@@ -42,6 +42,7 @@ public:
 	static const st_timer::tid TIMER_BEGIN = super::TIMER_END;
 	static const st_timer::tid TIMER_CONNECT = TIMER_BEGIN;
 	static const st_timer::tid TIMER_ASYNC_SHUTDOWN = TIMER_BEGIN + 1;
+	static const st_timer::tid TIMER_HEARTBEAT_CHECK = TIMER_BEGIN + 2;
 	static const st_timer::tid TIMER_END = TIMER_BEGIN + 10;
 
 	st_connector_base(boost::asio::io_service& io_service_) : super(io_service_), connected(false), reconnecting(true)
@@ -198,6 +199,21 @@ private:
 		return false;
 	}
 
+	bool check_heartbeat(st_timer::tid id)
+	{
+		assert(TIMER_HEARTBEAT_CHECK == id);
+
+		if (ST_THIS clean_heartbeat() <= 0 && time(nullptr) - ST_THIS last_recv_time >= ST_ASIO_HEARTBEAT_INTERVAL * ST_ASIO_HEARTBEAT_MAX_ABSENCE)
+		{
+			show_info("client link:", "broke unexpectedly.");
+			force_shutdown(ST_THIS is_shutting_down() ? reconnecting : prepare_reconnect(boost::system::error_code(boost::asio::error::network_down)) >= 0);
+		}
+		else //client sends heartbeat initiatively
+			ST_THIS send_heartbeat((const char) id);
+
+		return true; //always keep this timer
+	}
+
 	void connect_handler(const boost::system::error_code& ec)
 	{
 		if (!ec)
@@ -205,6 +221,8 @@ private:
 			connected = reconnecting = true;
 			ST_THIS reset_state();
 			on_connect();
+			ST_THIS last_send_time = ST_THIS last_recv_time = time(nullptr);
+			ST_THIS set_timer(TIMER_HEARTBEAT_CHECK, ST_ASIO_HEARTBEAT_INTERVAL * 1000, [this](st_timer::tid id)->bool {return ST_THIS check_heartbeat(id);});
 			ST_THIS send_msg(); //send buffer may have msgs, send them
 			do_start();
 		}
