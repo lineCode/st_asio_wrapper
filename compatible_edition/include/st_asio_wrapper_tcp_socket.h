@@ -25,10 +25,9 @@
 
 #ifndef ST_ASIO_HEARTBEAT_INTERVAL
 #define ST_ASIO_HEARTBEAT_INTERVAL	5 //second(s)
-#elif ST_ASIO_HEARTBEAT_INTERVAL <= 0
-	#error heartbeat interval must be bigger than zero.
 #endif
-//at every ST_ASIO_HEARTBEAT_INTERVAL second(s), send an OOB data (heartbeat) if no normal messages been sent.
+//at every ST_ASIO_HEARTBEAT_INTERVAL second(s), send an OOB data (heartbeat) if no normal messages been sent,
+//less than or equal to zero means disable heartbeat.
 
 #ifndef ST_ASIO_HEARTBEAT_MAX_ABSENCE
 #define ST_ASIO_HEARTBEAT_MAX_ABSENCE	3 //times of ST_ASIO_HEARTBEAT_INTERVAL

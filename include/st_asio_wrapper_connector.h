@@ -222,7 +222,8 @@ private:
 			ST_THIS reset_state();
 			on_connect();
 			ST_THIS last_send_time = ST_THIS last_recv_time = time(nullptr);
-			ST_THIS set_timer(TIMER_HEARTBEAT_CHECK, ST_ASIO_HEARTBEAT_INTERVAL * 1000, [this](st_timer::tid id)->bool {return ST_THIS check_heartbeat(id);});
+			if (ST_ASIO_HEARTBEAT_INTERVAL > 0)
+				ST_THIS set_timer(TIMER_HEARTBEAT_CHECK, ST_ASIO_HEARTBEAT_INTERVAL * 1000, [this](st_timer::tid id)->bool {return ST_THIS check_heartbeat(id);});
 			ST_THIS send_msg(); //send buffer may have msgs, send them
 			do_start();
 		}

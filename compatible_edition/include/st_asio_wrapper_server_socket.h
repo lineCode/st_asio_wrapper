@@ -87,7 +87,8 @@ protected:
 		if (!ST_THIS stopped())
 		{
 			ST_THIS last_send_time = ST_THIS last_recv_time = time(NULL);
-			ST_THIS set_timer(TIMER_HEARTBEAT_CHECK, ST_ASIO_HEARTBEAT_INTERVAL * 1000, boost::bind(&st_server_socket_base::check_heartbeat, this, _1));
+			if (ST_ASIO_HEARTBEAT_INTERVAL > 0)
+				ST_THIS set_timer(TIMER_HEARTBEAT_CHECK, ST_ASIO_HEARTBEAT_INTERVAL * 1000, boost::bind(&st_server_socket_base::check_heartbeat, this, _1));
 			ST_THIS do_recv_msg();
 			return true;
 		}

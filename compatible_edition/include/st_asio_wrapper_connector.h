@@ -223,7 +223,8 @@ private:
 			ST_THIS reset_state();
 			on_connect();
 			ST_THIS last_send_time = ST_THIS last_recv_time = time(NULL);
-			ST_THIS set_timer(TIMER_HEARTBEAT_CHECK, ST_ASIO_HEARTBEAT_INTERVAL * 1000, boost::bind(&st_connector_base::check_heartbeat, this, _1));
+			if (ST_ASIO_HEARTBEAT_INTERVAL > 0)
+				ST_THIS set_timer(TIMER_HEARTBEAT_CHECK, ST_ASIO_HEARTBEAT_INTERVAL * 1000, boost::bind(&st_connector_base::check_heartbeat, this, _1));
 			ST_THIS send_msg(); //send buffer may have msgs, send them
 			do_start();
 		}

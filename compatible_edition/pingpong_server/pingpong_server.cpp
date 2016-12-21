@@ -3,7 +3,6 @@
 
 //configuration
 #define ST_ASIO_SERVER_PORT		9527
-#define ST_ASIO_ASYNC_ACCEPT_NUM 5
 #define ST_ASIO_REUSE_OBJECT //use objects pool
 #define ST_ASIO_DELAY_CLOSE		5 //define this to avoid hooks for async call (and slightly improve efficiency)
 //#define ST_ASIO_FORCE_TO_USE_MSG_RECV_BUFFER
