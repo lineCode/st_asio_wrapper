@@ -348,8 +348,13 @@ private:
 			dispatch_msg();
 			break;
 		case TIMER_DELAY_CLOSE:
-			if (!ST_THIS is_last_async_call())
+			if (!is_last_async_call())
+			{
+				stop_all_timer();
+				revive_timer(TIMER_DELAY_CLOSE);
+
 				return true;
+			}
 			else if (lowest_layer().is_open())
 			{
 				boost::system::error_code ec;

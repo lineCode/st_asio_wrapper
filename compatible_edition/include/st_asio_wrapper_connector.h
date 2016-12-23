@@ -212,7 +212,7 @@ private:
 		else //client sends heartbeat initiatively
 			ST_THIS send_heartbeat((const char) id);
 
-		return true; //always keep this timer
+		return ST_THIS started(); //always keep this timer
 	}
 
 	void connect_handler(const boost::system::error_code& ec)

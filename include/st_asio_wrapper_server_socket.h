@@ -145,7 +145,7 @@ private:
 			force_shutdown();
 		}
 
-		return true; //always keep this timer
+		return ST_THIS started(); //always keep this timer
 	}
 
 protected:

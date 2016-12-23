@@ -14,7 +14,11 @@
 #ifdef ST_ASIO_WANT_MSG_SEND_NOTIFY
 #define ST_ASIO_INPUT_QUEUE non_lock_queue //we will never operate sending buffer concurrently, so need no locks.
 #endif
-//configuration
+
+//#define ST_ASIO_MAX_MSG_NUM		16
+//if there's a huge number of links, please reduce messge buffer via ST_ASIO_MAX_MSG_NUM macro.
+//please think about if we have 512 links, how much memory we can accupy at most with default ST_ASIO_MAX_MSG_NUM?
+//it's 2 * 1024 * 1024 * 512 = 1G
 
 //use the following macro to control the type of packer and unpacker
 #define PACKER_UNPACKER_TYPE	0
@@ -33,6 +37,7 @@
 #define ST_ASIO_DEFAULT_PACKER prefix_suffix_packer
 #define ST_ASIO_DEFAULT_UNPACKER prefix_suffix_unpacker
 #endif
+//configuration
 
 #include "../include/ext/st_asio_wrapper_client.h"
 using namespace st_asio_wrapper;
@@ -290,7 +295,8 @@ void send_msg_concurrently(test_client& client, size_t send_thread_num, size_t m
 	auto group_num = std::min(send_thread_num, link_num);
 	auto group_link_num = link_num / group_num;
 	auto left_link_num = link_num - group_num * group_link_num;
-	uint64_t total_msg_bytes = msg_num * msg_len * link_num;
+	uint64_t total_msg_bytes = link_num * msg_len;
+	total_msg_bytes *= msg_num;
 
 	auto group_index = (size_t) -1;
 	size_t this_group_link_num = 0;
@@ -349,13 +355,12 @@ void send_msg_concurrently(test_client& client, size_t send_thread_num, size_t m
 			fflush(stdout);
 		}
 	} while (100 != percent);
+	threads.join_all();
 	begin_time.stop();
 
 	auto used_time = (double) begin_time.elapsed().wall / 1000000000;
 	printf("\r100%%\ntime spent statistics: %f seconds.\n", used_time);
 	printf("speed: %.0f(*2)kB/s.\n", total_msg_bytes / used_time / 1024);
-
-	threads.join_all();
 }
 
 int main(int argc, const char* argv[])
