@@ -110,7 +110,11 @@ public:
 				lock.unlock();
 
 				if (!do_send_msg())
+				{
 					sending = false;
+					if (!send_msg_buffer.empty())
+						send_msg(); //just make sure no pending msgs
+				}
 			}
 		}
 
