@@ -409,12 +409,17 @@ protected:
 	// 2. congestion control opened;
 	//st_socket will delay 50 milliseconds(non-blocking) to invoke handle_msg() again, and now, as you known, temp_msg_buffer is used to hold these msgs temporarily.
 
-	bool sending, paused_sending;
+	volatile bool sending;
+	bool paused_sending;
 	st_atomic_size_t send_atomic;
-	bool dispatching, paused_dispatching, congestion_controlling;
+
+	volatile bool dispatching;
+	bool paused_dispatching;
 	st_atomic_size_t dispatch_atomic;
 
-	bool started_; //has started or not
+	volatile bool congestion_controlling;
+
+	volatile bool started_; //has started or not
 	st_atomic_size_t start_atomic;
 
 	struct statistic stat;

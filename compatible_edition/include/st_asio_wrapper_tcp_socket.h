@@ -331,7 +331,7 @@ protected:
 	boost::container::list<typename super::in_msg> last_send_msg;
 	boost::shared_ptr<i_unpacker<out_msg_type> > unpacker_;
 
-	shutdown_states shutdown_state;
+	volatile shutdown_states shutdown_state;
 	st_atomic_size_t shutdown_atomic;
 
 	//heartbeat
