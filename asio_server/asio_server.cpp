@@ -112,9 +112,12 @@ protected:
 	{
 		auto re = send_msg(msg.data(), msg.size());
 		if (!re)
-			congestion_control(true);
+		{
 			//cannot handle (send it back) this msg timely, begin congestion control
 			//'msg' will be put into receiving buffer, and be dispatched via on_msg_handle() in the future
+			congestion_control(true);
+			//unified_out::warning_out("open congestion control."); //too many prompts will affect efficiency
+		}
 
 		return re;
 	}
@@ -123,9 +126,12 @@ protected:
 	{
 		auto re = send_msg(msg.data(), msg.size());
 		if (re)
-			congestion_control(false);
+		{
 			//successfully handled the only one msg in receiving buffer, end congestion control
 			//subsequent msgs will be dispatched via on_msg() again.
+			congestion_control(false);
+			//unified_out::warning_out("close congestion control."); //too many prompts will affect efficiency
+		}
 
 		return re;
 	}

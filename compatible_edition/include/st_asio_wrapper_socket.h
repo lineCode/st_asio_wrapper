@@ -125,7 +125,7 @@ public:
 	void suspend_dispatch_msg(bool suspend) {if (!(paused_dispatching = suspend) && started()) dispatch_msg();}
 	bool suspend_dispatch_msg() const {return paused_dispatching;}
 
-	void congestion_control(bool enable) {congestion_controlling = enable; unified_out::warning_out("%s congestion control.", enable ? "open" : "close");}
+	void congestion_control(bool enable) {congestion_controlling = enable;}
 	bool congestion_control() const {return congestion_controlling;}
 
 	//in st_asio_wrapper, it's thread safe to access stat without mutex, because for a specific member of stat, st_asio_wrapper will never access it concurrently.
