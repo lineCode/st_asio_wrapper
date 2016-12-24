@@ -10,7 +10,7 @@
 //#define ST_ASIO_FULL_STATISTIC //full statistic will slightly impact efficiency
 //#define ST_ASIO_USE_STEADY_TIMER
 //#define ST_ASIO_USE_SYSTEM_TIMER
-
+#define ST_ASIO_HEARTBEAT_INTERVAL	0 //disable heartbeat when doing performance test
 //#define ST_ASIO_MAX_MSG_NUM		16
 //if there's a huge number of links, please reduce messge buffer via ST_ASIO_MAX_MSG_NUM macro.
 //please think about if we have 512 links, how much memory we can accupy at most with default ST_ASIO_MAX_MSG_NUM?
