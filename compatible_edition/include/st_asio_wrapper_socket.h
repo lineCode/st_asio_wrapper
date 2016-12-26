@@ -113,7 +113,7 @@ public:
 				if (!do_send_msg())
 				{
 					sending = false;
-					if (!send_msg_buffer.empty())
+					if (!send_msg_buffer.empty() && is_send_allowed())
 						send_msg(); //just make sure no pending msgs
 				}
 			}
@@ -172,7 +172,7 @@ protected:
 	virtual void do_recv_msg() = 0;
 
 	virtual bool is_closable() {return true;}
-	virtual bool is_send_allowed() {return !paused_sending;} //can send msg or not(just put into send buffer)
+	virtual bool is_send_allowed() {return !paused_sending && !stopped();} //can send msg or not(just put into send buffer)
 
 	//generally, you don't have to rewrite this to maintain the status of connections(TCP)
 	virtual void on_send_error(const boost::system::error_code& ec) {unified_out::error_out("send msg error (%d %s)", ec.value(), ec.message().data());}
@@ -278,7 +278,7 @@ protected:
 				if (!do_dispatch_msg())
 				{
 					dispatching = false;
-					if (!recv_msg_buffer.empty())
+					if (!recv_msg_buffer.empty() && !paused_dispatching && !stopped())
 						dispatch_msg(); //just make sure no pending msgs
 				}
 			}
