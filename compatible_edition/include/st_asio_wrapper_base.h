@@ -96,15 +96,14 @@ template<typename atomic_type = st_atomic_size_t>
 class scope_atomic_lock : public boost::noncopyable
 {
 public:
-	scope_atomic_lock(atomic_type& atomic_) : added(false), atomic(atomic_) {lock();} //atomic_ must has been initialized to zero
+	scope_atomic_lock(atomic_type& atomic_) : atomic(atomic_) {lock();} //atomic_ must has been initialized to zero
 	~scope_atomic_lock() {unlock();}
 
-	void lock() {if (!added) _locked = 1 == ++atomic; added = true;}
-	void unlock() {if (added) --atomic; _locked = false, added = false;}
+	void lock() {if (!_locked) {_locked = 1 == ++atomic; if (!_locked) --atomic;}}
+	void unlock() {if (_locked) --atomic; _locked = false;}
 	bool locked() const {return _locked;}
 
 private:
-	bool added;
 	bool _locked;
 	atomic_type& atomic;
 };
