@@ -276,7 +276,7 @@ protected:
 				if (!do_dispatch_msg())
 				{
 					dispatching = false;
-					if (!recv_msg_buffer.empty() && !paused_dispatching && !stopped())
+					if (!recv_msg_buffer.empty() && !paused_dispatching)
 						dispatch_msg(); //just make sure no pending msgs
 				}
 			}
@@ -304,6 +304,7 @@ protected:
 			while (recv_msg_buffer.try_dequeue_(msg))
 				on_msg_handle(msg, true);
 #endif
+			recv_msg_buffer.clear();
 		}
 		else if (!last_dispatch_msg.empty() || recv_msg_buffer.try_dequeue(last_dispatch_msg))
 		{
