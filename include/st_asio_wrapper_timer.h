@@ -13,8 +13,6 @@
 #ifndef ST_ASIO_WRAPPER_TIMER_H_
 #define ST_ASIO_WRAPPER_TIMER_H_
 
-#include <vector>
-
 #ifdef ST_ASIO_USE_STEADY_TIMER
 #include <boost/asio/steady_timer.hpp>
 #elif defined(ST_ASIO_USE_SYSTEM_TIMER)

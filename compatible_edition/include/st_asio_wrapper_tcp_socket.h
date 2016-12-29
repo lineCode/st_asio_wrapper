@@ -13,8 +13,6 @@
 #ifndef ST_ASIO_WRAPPER_TCP_SOCKET_H_
 #define ST_ASIO_WRAPPER_TCP_SOCKET_H_
 
-#include <vector>
-
 #include "st_asio_wrapper_socket.h"
 
 #ifndef ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION
@@ -131,7 +129,7 @@ protected:
 	{
 		if (!ST_THIS send_msg_buffer.empty() && is_send_allowed())
 		{
-			std::vector<boost::asio::const_buffer> bufs;
+			std::list<boost::asio::const_buffer> bufs;
 			{
 #ifdef ST_ASIO_WANT_MSG_SEND_NOTIFY
 				const size_t max_send_size = 0;

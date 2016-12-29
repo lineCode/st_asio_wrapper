@@ -50,7 +50,7 @@ public:
 					unpack_ok = false;
 				else if (remain_len >= cur_msg_len) //one msg received
 				{
-					msg_can.push_back(std::make_pair(std::next(pnext, ST_ASIO_HEAD_LEN), cur_msg_len - ST_ASIO_HEAD_LEN));
+					msg_can.emplace_back(std::next(pnext, ST_ASIO_HEAD_LEN), cur_msg_len - ST_ASIO_HEAD_LEN);
 					remain_len -= cur_msg_len;
 					std::advance(pnext, cur_msg_len);
 					cur_msg_len = -1;
@@ -79,7 +79,7 @@ public:
 	{
 		boost::container::list<std::pair<const char*, size_t>> msg_pos_can;
 		auto unpack_ok = parse_msg(bytes_transferred, msg_pos_can);
-		do_something_to_all(msg_pos_can, [&msg_can](decltype(msg_pos_can.front())& item) {msg_can.resize(msg_can.size() + 1); msg_can.back().assign(item.first, item.second);});
+		do_something_to_all(msg_pos_can, [&msg_can](decltype(msg_pos_can.front())& item) {msg_can.emplace_back(item.first, item.second);});
 
 		if (unpack_ok && remain_len > 0)
 		{
@@ -157,8 +157,7 @@ public:
 		do_something_to_all(tmp_can, [&msg_can](unpacker::msg_type& item) {
 			auto raw_msg = new string_buffer();
 			raw_msg->swap(item);
-			msg_can.resize(msg_can.size() + 1);
-			msg_can.back().raw_buffer(raw_msg);
+			msg_can.emplace_back(raw_msg);
 		});
 
 		//if unpacking failed, successfully parsed msgs will still returned via msg_can(sticky package), please note.
@@ -218,8 +217,7 @@ public:
 			if (bytes_transferred != raw_buff.size())
 				return false;
 
-			msg_can.resize(msg_can.size() + 1);
-			msg_can.back().swap(raw_buff);
+			msg_can.emplace_back(std::move(raw_buff));
 			step = 0;
 		}
 
@@ -294,8 +292,7 @@ public:
 		if (bytes_transferred != raw_buff.size())
 			return false;
 
-		msg_can.resize(msg_can.size() + 1);
-		msg_can.back().swap(raw_buff);
+		msg_can.emplace_back(std::move(raw_buff));
 		return true;
 	}
 
@@ -385,8 +382,7 @@ public:
 			assert(first_msg_len > min_len);
 			auto msg_len = first_msg_len - min_len;
 
-			msg_can.resize(msg_can.size() + 1);
-			msg_can.back().assign(std::next(pnext, _prefix.size()), msg_len);
+			msg_can.emplace_back(std::next(pnext, _prefix.size()), msg_len);
 			remain_len -= first_msg_len;
 			std::advance(pnext, first_msg_len);
 			first_msg_len = -1;
@@ -447,8 +443,7 @@ public:
 
 		assert(bytes_transferred <= ST_ASIO_MSG_BUFFER_SIZE);
 
-		msg_can.resize(msg_can.size() + 1);
-		msg_can.back().assign(raw_buff.data(), bytes_transferred);
+		msg_can.emplace_back(raw_buff.data(), bytes_transferred);
 		return true;
 	}
 

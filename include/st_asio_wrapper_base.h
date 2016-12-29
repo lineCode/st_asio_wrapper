@@ -69,6 +69,7 @@ class st_atomic
 public:
 	st_atomic() : data(0) {}
 	st_atomic(const T& _data) : data(_data) {}
+
 	T operator++() {boost::unique_lock<boost::shared_mutex> lock(data_mutex); return ++data;}
 	//deliberately omitted operator++(int)
 	T operator+=(const T& value) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); return data += value;}
@@ -76,6 +77,11 @@ public:
 	//deliberately omitted operator--(int)
 	T operator-=(const T& value) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); return data -= value;}
 	T operator=(const T& value) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); return data = value;}
+	T exchange(const T& value, boost::memory_order) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); T pre_data = data; data = value; return pre_data;}
+	T fetch_add(const T& value, boost::memory_order) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); T pre_data = data; data += value; return pre_data;}
+	void store(const T& value, boost::memory_order) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); data = value;}
+
+	bool is_lock_free() const {return false;}
 	operator T() const {return data;}
 
 private:
@@ -90,11 +96,11 @@ template<typename atomic_type = st_atomic_size_t>
 class scope_atomic_lock : public boost::noncopyable
 {
 public:
-	scope_atomic_lock(atomic_type& atomic_) : atomic(atomic_) {lock();} //atomic_ must has been initialized to zero
+	scope_atomic_lock(atomic_type& atomic_) : _locked(false), atomic(atomic_) {lock();} //atomic_ must has been initialized with zero
 	~scope_atomic_lock() {unlock();}
 
-	void lock() {if (!_locked) {_locked = 1 == ++atomic; if (!_locked) --atomic;}}
-	void unlock() {if (_locked) --atomic; _locked = false;}
+	void lock() {if (!_locked) _locked = 0 == atomic.exchange(1, boost::memory_order_acq_rel);}
+	void unlock() {if (_locked) atomic.store(0, boost::memory_order_release); _locked = false;}
 	bool locked() const {return _locked;}
 
 private:

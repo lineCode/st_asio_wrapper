@@ -124,6 +124,7 @@
  * Support scatter-gather buffers when receiving messages, this feature needs modification of i_unpacker, you must explicitly define
  *  ST_ASIO_SCATTERED_RECV_BUFFER macro to open it, this is just for compatiblity.
  * Simplify lock-free mechanism.
+ * Optimize container insertion (use series of emplace functions instead) in normal edition.
  * Demo test_client support alterable number of sending thread (before, it's a hard code 16).
  * Fix bug: In extreme cases, messages may get starved in receive buffer and will not be dispatched until arrival of next message.
  * Fix bug: In extreme cases, messages may get starved in send buffer and will not be sent until arrival of next message.
