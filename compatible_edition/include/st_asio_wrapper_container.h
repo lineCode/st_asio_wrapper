@@ -73,7 +73,7 @@ private:
 // empty
 // clear
 // swap
-// push_back(const T& item)
+// emplace_back(const T& item)
 // splice(Container::const_iterator, std::list<T>&), after this, std::list<T> must be empty
 // front
 // back
@@ -94,7 +94,7 @@ public:
 	void move_items_in(boost::container::list<T>& can) {typename Lockable::lock_guard lock(*this); move_items_in_(can);}
 	bool try_dequeue(T& item) {typename Lockable::lock_guard lock(*this); return try_dequeue_(item);}
 
-	bool enqueue_(const T& item) {this->push_back(item); return true;}
+	bool enqueue_(const T& item) {this->emplace_back(item); return true;}
 	bool enqueue_(T& item) {this->resize(this->size() + 1); this->back().swap(item); return true;} //after this, item will becomes empty, please note.
 	void move_items_in_(boost::container::list<T>& can) {this->splice(this->end(), can);}
 	bool try_dequeue_(T& item) {if (this->empty()) return false; item.swap(this->front()); this->pop_front(); return true;}

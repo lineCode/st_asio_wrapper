@@ -129,7 +129,7 @@ protected:
 	{
 		if (!ST_THIS send_msg_buffer.empty() && is_send_allowed())
 		{
-			std::list<boost::asio::const_buffer> bufs;
+			boost::container::list<boost::asio::const_buffer> bufs;
 			{
 #ifdef ST_ASIO_WANT_MSG_SEND_NOTIFY
 				const size_t max_send_size = 0;
@@ -147,7 +147,7 @@ protected:
 					size += msg.size();
 					last_send_msg.resize(last_send_msg.size() + 1);
 					last_send_msg.back().swap(msg);
-					bufs.push_back(boost::asio::buffer(last_send_msg.back().data(), last_send_msg.back().size()));
+					bufs.emplace_back(last_send_msg.back().data(), last_send_msg.back().size());
 					if (size >= max_send_size)
 						break;
 				}
