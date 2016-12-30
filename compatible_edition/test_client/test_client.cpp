@@ -304,6 +304,26 @@ void thread_runtine(boost::container::list<test_client::object_type>& link_group
 	delete[] buff;
 }
 
+typedef boost::container::list<test_client::object_type> link_container;
+void group_links(test_client::object_ctype& link, std::vector<link_container>& link_groups, size_t group_link_num,
+	size_t& group_index, size_t& this_group_link_num, size_t& left_link_num)
+{
+	if (0 == this_group_link_num)
+	{
+		this_group_link_num = group_link_num;
+		if (left_link_num > 0)
+		{
+			++this_group_link_num;
+			--left_link_num;
+		}
+
+		++group_index;
+	}
+
+	--this_group_link_num;
+	link_groups[group_index].emplace_back(link);
+}
+
 //use up to a specific worker threads to send messages concurrently
 void send_msg_concurrently(test_client& client, size_t send_thread_num, size_t msg_num, size_t msg_len, char msg_fill)
 {
@@ -318,28 +338,9 @@ void send_msg_concurrently(test_client& client, size_t send_thread_num, size_t m
 	size_t group_index = (size_t) -1;
 	size_t this_group_link_num = 0;
 
-	typedef boost::container::list<test_client::object_type> link_container;
-	link_container all_links;
-	client.do_something_to_all(boost::lambda::bind((void (link_container::*)(const link_container::value_type&)) &link_container::emplace_back, &all_links, boost::lambda::_1));
-
 	std::vector<link_container> link_groups(group_num);
-	for (BOOST_AUTO(iter, all_links.begin()); iter != all_links.end(); ++iter)
-	{
-		if (0 == this_group_link_num)
-		{
-			this_group_link_num = group_link_num;
-			if (left_link_num > 0)
-			{
-				++this_group_link_num;
-				--left_link_num;
-			}
-
-			++group_index;
-		}
-
-		--this_group_link_num;
-		link_groups[group_index].emplace_back(*iter);
-	}
+	client.do_something_to_all(boost::bind(&group_links, _1, boost::ref(link_groups), group_link_num,
+		boost::ref(group_index), boost::ref(this_group_link_num), boost::ref(left_link_num)));
 
 	boost::timer::cpu_timer begin_time;
 	boost::thread_group threads;
