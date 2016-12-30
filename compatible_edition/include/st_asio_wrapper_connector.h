@@ -183,13 +183,13 @@ protected:
 		ST_THIS clean_heartbeat();
 
 		assert(interval > 0);
-		time_t time_elapse = time(nullptr) - ST_THIS last_interact_time;
-		if (time_elapse >= interval * ST_ASIO_HEARTBEAT_MAX_ABSENCE)
+		time_t now = time(NULL);
+		if (now - std::max(this->last_send_time, this->last_recv_time) >= interval * ST_ASIO_HEARTBEAT_MAX_ABSENCE)
 		{
 			show_info("client link:", "broke unexpectedly.");
 			force_shutdown(ST_THIS is_shutting_down() ? reconnecting : prepare_reconnect(boost::system::error_code(boost::asio::error::network_down)) >= 0);
 		}
-		else if (time_elapse >= interval)
+		else if (now - this->last_send_time >= interval)
 			ST_THIS send_heartbeat('c');
 
 		return ST_THIS started(); //always keep this timer
@@ -225,7 +225,7 @@ private:
 			connected = reconnecting = true;
 			ST_THIS reset_state();
 			on_connect();
-			ST_THIS last_interact_time = time(NULL);
+			ST_THIS last_send_time = ST_THIS last_recv_time = time(NULL);
 			if (ST_ASIO_HEARTBEAT_INTERVAL > 0)
 				ST_THIS set_timer(TIMER_HEARTBEAT_CHECK, ST_ASIO_HEARTBEAT_INTERVAL * 1000,
 					boost::lambda::if_then_else_return(boost::lambda::bind(&st_connector_base::check_heartbeat, this, ST_ASIO_HEARTBEAT_INTERVAL), true, false));

@@ -244,7 +244,7 @@ protected:
 		}
 
 		if (heartbeat_len > 0)
-			last_interact_time = time(NULL);
+			last_recv_time = time(NULL);
 
 		return heartbeat_len;
 	}
@@ -261,7 +261,7 @@ private:
 	{
 		if (!ec && bytes_transferred > 0)
 		{
-			last_interact_time = time(NULL);
+			last_recv_time = time(NULL);
 
 			typename Unpacker::container_type temp_msg_can;
 			auto_duration dur(ST_THIS stat.unpack_time_sum);
@@ -296,7 +296,7 @@ private:
 	{
 		if (!ec)
 		{
-			last_interact_time = time(NULL);
+			last_send_time = time(NULL);
 
 			ST_THIS stat.send_time_sum += statistic::local_time() - last_send_msg.front().begin_time;
 			ST_THIS stat.send_byte_sum += bytes_transferred;
@@ -331,7 +331,7 @@ protected:
 	st_atomic_size_t shutdown_atomic;
 
 	//heartbeat
-	time_t last_interact_time;
+	time_t last_send_time, last_recv_time;
 };
 
 } //namespace
