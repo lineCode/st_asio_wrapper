@@ -86,7 +86,7 @@ protected:
 	{
 		if (!ST_THIS stopped())
 		{
-			ST_THIS last_send_time = ST_THIS last_recv_time = time(nullptr);
+			ST_THIS last_interact_time = time(nullptr);
 			if (ST_ASIO_HEARTBEAT_INTERVAL > 0)
 				ST_THIS set_timer(TIMER_HEARTBEAT_CHECK, ST_ASIO_HEARTBEAT_INTERVAL * 1000, [this](st_timer::tid id)->bool {return ST_THIS check_heartbeat(ST_ASIO_HEARTBEAT_INTERVAL);});
 			ST_THIS do_recv_msg();
@@ -115,15 +115,17 @@ protected:
 	//otherwise, you can call check_heartbeat with you own logic, but you still need to define a valid ST_ASIO_HEARTBEAT_MAX_ABSENCE macro, please note.
 	bool check_heartbeat(int interval)
 	{
-		assert(interval > 0);
+		ST_THIS clean_heartbeat();
 
-		if (ST_THIS clean_heartbeat() > 0) //server socket never send heartbeat initiatively
-			ST_THIS send_heartbeat(interval, 's');
-		else if (time(nullptr) - ST_THIS last_recv_time >= interval * ST_ASIO_HEARTBEAT_MAX_ABSENCE)
+		assert(interval > 0);
+		auto time_elapse = time(nullptr) - ST_THIS last_interact_time;
+		if (time_elapse >= interval * ST_ASIO_HEARTBEAT_MAX_ABSENCE)
 		{
 			show_info("server link:", "broke unexpectedly.");
 			force_shutdown();
 		}
+		else if (time_elapse >= interval)
+			ST_THIS send_heartbeat('s');
 
 		return ST_THIS started(); //always keep this timer
 	}

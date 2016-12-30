@@ -163,8 +163,6 @@ protected:
 
 			if (!bufs.empty())
 			{
-				last_send_time = time(NULL);
-
 				last_send_msg.front().restart();
 				boost::asio::async_write(ST_THIS next_layer(), bufs,
 					ST_THIS make_handler_error_size(boost::bind(&st_tcp_socket_base::send_handler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)));
@@ -246,20 +244,11 @@ protected:
 		}
 
 		if (heartbeat_len > 0)
-			last_recv_time = time(NULL);
+			last_interact_time = time(NULL);
 
 		return heartbeat_len;
 	}
-
-	void send_heartbeat(int interval, const char c)
-	{
-		time_t now = time(NULL);
-		if (now - last_send_time >= interval)
-		{
-			last_send_time = now;
-			send(ST_THIS lowest_layer().native_handle(), &c, 1, MSG_OOB);
-		}
-	}
+	void send_heartbeat(const char c) {send(ST_THIS lowest_layer().native_handle(), &c, 1, MSG_OOB);}
 
 private:
 	size_t completion_checker(const boost::system::error_code& ec, size_t bytes_transferred)
@@ -272,7 +261,7 @@ private:
 	{
 		if (!ec && bytes_transferred > 0)
 		{
-			last_recv_time = time(NULL);
+			last_interact_time = time(NULL);
 
 			typename Unpacker::container_type temp_msg_can;
 			auto_duration dur(ST_THIS stat.unpack_time_sum);
@@ -307,6 +296,8 @@ private:
 	{
 		if (!ec)
 		{
+			last_interact_time = time(NULL);
+
 			ST_THIS stat.send_time_sum += statistic::local_time() - last_send_msg.front().begin_time;
 			ST_THIS stat.send_byte_sum += bytes_transferred;
 			ST_THIS stat.send_msg_sum += last_send_msg.size();
@@ -340,7 +331,7 @@ protected:
 	st_atomic_size_t shutdown_atomic;
 
 	//heartbeat
-	time_t last_send_time, last_recv_time;
+	time_t last_interact_time;
 };
 
 } //namespace
