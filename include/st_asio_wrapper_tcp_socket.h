@@ -54,9 +54,16 @@ protected:
 
 	enum shutdown_states {NONE, FORCE, GRACEFUL};
 
-	st_tcp_socket_base(boost::asio::io_service& io_service_) : super(io_service_), unpacker_(boost::make_shared<Unpacker>()), shutdown_state(NONE), shutdown_atomic(0) {}
-	template<typename Arg>
-	st_tcp_socket_base(boost::asio::io_service& io_service_, Arg& arg) : super(io_service_, arg), unpacker_(boost::make_shared<Unpacker>()), shutdown_state(NONE), shutdown_atomic(0) {}
+	st_tcp_socket_base(boost::asio::io_service& io_service_) : super(io_service_) {first_init();}
+	template<typename Arg> st_tcp_socket_base(boost::asio::io_service& io_service_, Arg& arg) : super(io_service_, arg) {first_init();}
+
+	//helper function, just call it in constructor
+	void first_init()
+	{
+		unpacker_ = boost::make_shared<Unpacker>();
+		shutdown_state = NONE;
+		shutdown_atomic.store(0, boost::memory_order_relaxed);
+	}
 
 public:
 	virtual bool obsoleted() {return !is_shutting_down() && super::obsoleted();}

@@ -40,10 +40,22 @@ protected:
 	static const tid TIMER_DELAY_CLOSE = TIMER_BEGIN + 2;
 	static const tid TIMER_END = TIMER_BEGIN + 10;
 
-	st_socket(boost::asio::io_service& io_service_) : st_timer(io_service_), _id(-1), next_layer_(io_service_), packer_(boost::make_shared<Packer>()),
-		send_atomic(0), dispatch_atomic(0), started_(false), start_atomic(0) {reset_state();}
-	template<typename Arg> st_socket(boost::asio::io_service& io_service_, Arg& arg) : st_timer(io_service_), _id(-1), next_layer_(io_service_, arg), packer_(boost::make_shared<Packer>()),
-		send_atomic(0), dispatch_atomic(0), started_(false), start_atomic(0) {reset_state();}
+	st_socket(boost::asio::io_service& io_service_) : st_timer(io_service_), next_layer_(io_service_) {first_init();}
+	template<typename Arg> st_socket(boost::asio::io_service& io_service_, Arg& arg) : st_timer(io_service_), next_layer_(io_service_, arg) {first_init();}
+
+	//helper function, just call it in constructor
+	void first_init()
+	{
+		_id = -1;
+		packer_ = boost::make_shared<Packer>();
+		sending = paused_sending = false;
+		dispatching = paused_dispatching = false;
+		congestion_controlling = false;
+		started_ = false;
+		send_atomic.clear(boost::memory_order_relaxed);
+		dispatch_atomic.clear(boost::memory_order_relaxed);
+		start_atomic.clear(boost::memory_order_relaxed);
+	}
 
 	void reset()
 	{
