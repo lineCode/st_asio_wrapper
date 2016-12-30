@@ -115,7 +115,7 @@ protected:
 	//otherwise, you can call check_heartbeat with you own logic, but you still need to define a valid ST_ASIO_HEARTBEAT_MAX_ABSENCE macro, please note.
 	bool check_heartbeat(int interval)
 	{
-		assert(interval == id);
+		assert(interval > 0);
 
 		if (ST_THIS clean_heartbeat() > 0) //server socket never send heartbeat initiatively
 			ST_THIS send_heartbeat(interval, 's');

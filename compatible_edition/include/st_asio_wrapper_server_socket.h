@@ -118,7 +118,7 @@ protected:
 	{
 		assert(interval > 0);
 
-		if (ST_THIS clean_heartbeat() > 0) //server socket not send heartbeat initiatively
+		if (ST_THIS clean_heartbeat() > 0) //server socket never send heartbeat initiatively
 			ST_THIS send_heartbeat(interval, 's');
 		else if (time(NULL) - ST_THIS last_recv_time >= interval * ST_ASIO_HEARTBEAT_MAX_ABSENCE)
 		{

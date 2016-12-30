@@ -243,8 +243,6 @@ protected:
 
 	void send_heartbeat(int interval, const char c)
 	{
-		assert(interval > 0);
-
 		auto now = time(nullptr);
 		if (now - last_send_time >= interval)
 		{
