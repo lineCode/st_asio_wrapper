@@ -112,7 +112,7 @@
  * 2016.11.20	version 1.3.3
  * Simplify header files' dependence.
  * Yield to Visual C++ 10.0
- * Add Visual C++ solution and project files (Visuall C++ 11.0 and 9.0).
+ * Add Visual C++ solution and project files (Visual C++ 11.0 and 9.0).
  *
  * 2016.12.6	version 1.3.4
  * Compatible edition support c++0x (11, 14, 17, ...) features too.
