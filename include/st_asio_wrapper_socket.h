@@ -52,9 +52,9 @@ protected:
 		dispatching = paused_dispatching = false;
 		congestion_controlling = false;
 		started_ = false;
-		send_atomic.clear(boost::memory_order_relaxed);
-		dispatch_atomic.clear(boost::memory_order_relaxed);
-		start_atomic.clear(boost::memory_order_relaxed);
+		send_atomic.store(0, boost::memory_order_relaxed);
+		dispatch_atomic.store(0, boost::memory_order_relaxed);
+		start_atomic.store(0, boost::memory_order_relaxed);
 	}
 
 	void reset()
