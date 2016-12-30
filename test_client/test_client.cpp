@@ -316,7 +316,7 @@ void send_msg_concurrently(test_client& client, size_t send_thread_num, size_t m
 		}
 
 		--this_group_link_num;
-		link_groups[group_index].push_back(item);
+		link_groups[group_index].emplace_back(item);
 	});
 
 	boost::timer::cpu_timer begin_time;

@@ -290,7 +290,7 @@ void send_msg_randomly(test_client& client, size_t msg_num, size_t msg_len, char
 	printf("speed: %.0f(*2)kB/s.\n", total_msg_bytes / used_time / 1024);
 }
 
-void thread_runtine(std::list<test_client::object_type>& link_group, size_t msg_num, size_t msg_len, char msg_fill)
+void thread_runtine(boost::container::list<test_client::object_type>& link_group, size_t msg_num, size_t msg_len, char msg_fill)
 {
 	char* buff = new char[msg_len];
 	memset(buff, msg_fill, msg_len);
@@ -318,9 +318,9 @@ void send_msg_concurrently(test_client& client, size_t send_thread_num, size_t m
 	size_t group_index = (size_t) -1;
 	size_t this_group_link_num = 0;
 
-	typedef std::list<test_client::object_type> link_container;
+	typedef boost::container::list<test_client::object_type> link_container;
 	link_container all_links;
-	client.do_something_to_all(boost::lambda::bind((void (link_container::*)(const link_container::value_type&)) &link_container::push_back, &all_links, boost::lambda::_1));
+	client.do_something_to_all(boost::lambda::bind((void (link_container::*)(const link_container::value_type&)) &link_container::emplace_back, &all_links, boost::lambda::_1));
 
 	std::vector<link_container> link_groups(group_num);
 	for (BOOST_AUTO(iter, all_links.begin()); iter != all_links.end(); ++iter)
@@ -338,7 +338,7 @@ void send_msg_concurrently(test_client& client, size_t send_thread_num, size_t m
 		}
 
 		--this_group_link_num;
-		link_groups[group_index].push_back(*iter);
+		link_groups[group_index].emplace_back(*iter);
 	}
 
 	boost::timer::cpu_timer begin_time;

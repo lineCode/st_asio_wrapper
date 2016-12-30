@@ -219,7 +219,7 @@ public:
 			if (bytes_transferred != raw_buff.size())
 				return false;
 
-			msg_can.resize(msg_can.size() + 1);
+			msg_can.emplace_back();
 			msg_can.back().swap(raw_buff);
 			step = 0;
 		}
@@ -295,7 +295,7 @@ public:
 		if (bytes_transferred != raw_buff.size())
 			return false;
 
-		msg_can.resize(msg_can.size() + 1);
+		msg_can.emplace_back();
 		msg_can.back().swap(raw_buff);
 		return true;
 	}

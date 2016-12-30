@@ -145,7 +145,7 @@ protected:
 				{
 					ST_THIS stat.send_delay_sum += end_time - msg.begin_time;
 					size += msg.size();
-					last_send_msg.resize(last_send_msg.size() + 1);
+					last_send_msg.emplace_back();
 					last_send_msg.back().swap(msg);
 					bufs.emplace_back(last_send_msg.back().data(), last_send_msg.back().size());
 					if (size >= max_send_size)

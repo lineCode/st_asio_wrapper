@@ -69,11 +69,11 @@ private:
 //Container must at least has the following functions:
 // Container() and Container(size_t) constructor
 // size
-// resize
 // empty
 // clear
 // swap
 // emplace_back(const T& item)
+// emplace_back()
 // splice(Container::const_iterator, std::list<T>&), after this, std::list<T> must be empty
 // front
 // back
@@ -95,7 +95,7 @@ public:
 	bool try_dequeue(T& item) {typename Lockable::lock_guard lock(*this); return try_dequeue_(item);}
 
 	bool enqueue_(const T& item) {this->emplace_back(item); return true;}
-	bool enqueue_(T& item) {this->resize(this->size() + 1); this->back().swap(item); return true;} //after this, item will becomes empty, please note.
+	bool enqueue_(T& item) {this->emplace_back(); this->back().swap(item); return true;} //after this, item will becomes empty, please note.
 	void move_items_in_(boost::container::list<T>& can) {this->splice(this->end(), can);}
 	bool try_dequeue_(T& item) {if (this->empty()) return false; item.swap(this->front()); this->pop_front(); return true;}
 };
