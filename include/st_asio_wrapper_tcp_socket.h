@@ -24,7 +24,8 @@ static_assert(ST_ASIO_GRACEFUL_SHUTDOWN_MAX_DURATION > 0, "graceful shutdown dur
 #define ST_ASIO_HEARTBEAT_INTERVAL	5 //second(s)
 #endif
 //at every ST_ASIO_HEARTBEAT_INTERVAL second(s), send an OOB data (heartbeat) if no normal messages been sent,
-//less than or equal to zero means disable heartbeat.
+//less than or equal to zero means disable heartbeat, then you can send and check heartbeat with you own logic by calling st_connector_base::check_heartbeat
+// or st_server_socket_base::check_heartbeat, and you still need to define a valid ST_ASIO_HEARTBEAT_MAX_ABSENCE macro, please note.
 
 #ifndef ST_ASIO_HEARTBEAT_MAX_ABSENCE
 #define ST_ASIO_HEARTBEAT_MAX_ABSENCE	3 //times of ST_ASIO_HEARTBEAT_INTERVAL
@@ -240,10 +241,12 @@ protected:
 		return heartbeat_len;
 	}
 
-	void send_heartbeat(const char c)
+	void send_heartbeat(int interval, const char c)
 	{
+		assert(interval > 0);
+
 		auto now = time(nullptr);
-		if (now - last_send_time >= ST_ASIO_HEARTBEAT_INTERVAL)
+		if (now - last_send_time >= interval)
 		{
 			last_send_time = now;
 			send(ST_THIS lowest_layer().native_handle(), &c, 1, MSG_OOB);

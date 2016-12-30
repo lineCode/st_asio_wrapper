@@ -88,7 +88,8 @@ protected:
 		{
 			ST_THIS last_send_time = ST_THIS last_recv_time = time(NULL);
 			if (ST_ASIO_HEARTBEAT_INTERVAL > 0)
-				ST_THIS set_timer(TIMER_HEARTBEAT_CHECK, ST_ASIO_HEARTBEAT_INTERVAL * 1000, boost::bind(&st_server_socket_base::check_heartbeat, this, _1));
+				ST_THIS set_timer(TIMER_HEARTBEAT_CHECK, ST_ASIO_HEARTBEAT_INTERVAL * 1000,
+					boost::lambda::if_then_else_return(boost::lambda::bind(&st_server_socket_base::check_heartbeat, this, ST_ASIO_HEARTBEAT_INTERVAL), true, false));
 			ST_THIS do_recv_msg();
 			return true;
 		}
@@ -108,6 +109,24 @@ protected:
 		server.del_client(ST_THIS shared_from_this());
 #endif
 		ST_THIS shutdown_state = super::NONE;
+	}
+
+	//unit is second
+	//if macro ST_ASIO_HEARTBEAT_INTERVAL is bigger than zero, st_connector_base will start a timer to call this automatically with interval equal to ST_ASIO_HEARTBEAT_INTERVAL.
+	//otherwise, you can call check_heartbeat with you own logic, but you still need to define a valid ST_ASIO_HEARTBEAT_MAX_ABSENCE macro, please note.
+	bool check_heartbeat(int interval)
+	{
+		assert(interval > 0);
+
+		if (ST_THIS clean_heartbeat() > 0) //server socket not send heartbeat initiatively
+			ST_THIS send_heartbeat(interval, 's');
+		else if (time(NULL) - ST_THIS last_recv_time >= interval * ST_ASIO_HEARTBEAT_MAX_ABSENCE)
+		{
+			show_info("server link:", "broke unexpectedly.");
+			force_shutdown();
+		}
+
+		return ST_THIS started(); //always keep this timer
 	}
 
 private:
@@ -131,21 +150,6 @@ private:
 		}
 
 		return false;
-	}
-
-	bool check_heartbeat(st_timer::tid id)
-	{
-		assert(TIMER_HEARTBEAT_CHECK == id);
-
-		if (ST_THIS clean_heartbeat() > 0) //server socket not send heartbeat initiatively
-			ST_THIS send_heartbeat((const char) id);
-		else if (time(NULL) - ST_THIS last_recv_time >= ST_ASIO_HEARTBEAT_INTERVAL * ST_ASIO_HEARTBEAT_MAX_ABSENCE)
-		{
-			show_info("server link:", "broke unexpectedly.");
-			force_shutdown();
-		}
-
-		return ST_THIS started(); //always keep this timer
 	}
 
 protected:

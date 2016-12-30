@@ -177,6 +177,24 @@ protected:
 		return false;
 	}
 
+	//unit is second
+	//if macro ST_ASIO_HEARTBEAT_INTERVAL is bigger than zero, st_connector_base will start a timer to call this automatically with interval equal to ST_ASIO_HEARTBEAT_INTERVAL.
+	//otherwise, you can call check_heartbeat with you own logic, but you still need to define a valid ST_ASIO_HEARTBEAT_MAX_ABSENCE macro, please note.
+	bool check_heartbeat(int interval)
+	{
+		assert(interval > 0);
+
+		if (ST_THIS clean_heartbeat() <= 0 && time(NULL) - ST_THIS last_recv_time >= interval * ST_ASIO_HEARTBEAT_MAX_ABSENCE)
+		{
+			show_info("client link:", "broke unexpectedly.");
+			force_shutdown(ST_THIS is_shutting_down() ? reconnecting : prepare_reconnect(boost::system::error_code(boost::asio::error::network_down)) >= 0);
+		}
+		else //client sends heartbeat initiatively
+			ST_THIS send_heartbeat(interval, 'c');
+
+		return ST_THIS started(); //always keep this timer
+	}
+
 private:
 	bool async_shutdown_handler(st_timer::tid id, size_t loop_num)
 	{
@@ -200,21 +218,6 @@ private:
 		return false;
 	}
 
-	bool check_heartbeat(st_timer::tid id)
-	{
-		assert(TIMER_HEARTBEAT_CHECK == id);
-
-		if (ST_THIS clean_heartbeat() <= 0 && time(NULL) - ST_THIS last_recv_time >= ST_ASIO_HEARTBEAT_INTERVAL * ST_ASIO_HEARTBEAT_MAX_ABSENCE)
-		{
-			show_info("client link:", "broke unexpectedly.");
-			force_shutdown(ST_THIS is_shutting_down() ? reconnecting : prepare_reconnect(boost::system::error_code(boost::asio::error::network_down)) >= 0);
-		}
-		else //client sends heartbeat initiatively
-			ST_THIS send_heartbeat((const char) id);
-
-		return ST_THIS started(); //always keep this timer
-	}
-
 	void connect_handler(const boost::system::error_code& ec)
 	{
 		if (!ec)
@@ -224,7 +227,8 @@ private:
 			on_connect();
 			ST_THIS last_send_time = ST_THIS last_recv_time = time(NULL);
 			if (ST_ASIO_HEARTBEAT_INTERVAL > 0)
-				ST_THIS set_timer(TIMER_HEARTBEAT_CHECK, ST_ASIO_HEARTBEAT_INTERVAL * 1000, boost::bind(&st_connector_base::check_heartbeat, this, _1));
+				ST_THIS set_timer(TIMER_HEARTBEAT_CHECK, ST_ASIO_HEARTBEAT_INTERVAL * 1000,
+					boost::lambda::if_then_else_return(boost::lambda::bind(&st_connector_base::check_heartbeat, this, ST_ASIO_HEARTBEAT_INTERVAL), true, false));
 			ST_THIS send_msg(); //send buffer may have msgs, send them
 			do_start();
 		}
