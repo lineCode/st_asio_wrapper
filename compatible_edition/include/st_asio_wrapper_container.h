@@ -74,7 +74,7 @@ private:
 // swap
 // emplace_back(const T& item)
 // emplace_back()
-// splice(Container::const_iterator, std::list<T>&), after this, std::list<T> must be empty
+// splice(Container::const_iterator, boost::container::list<T>&), after this, boost::container::list<T> must be empty
 // front
 // back
 // pop_front
@@ -89,15 +89,26 @@ public:
 	queue() {}
 	queue(size_t size) : super(size) {}
 
+	size_t size_approx() const {return Container::size();}
+	bool empty() {typename Lockable::lock_guard lock(*this); return Container::empty();} //thread safe
+	using Container::clear;
+	using Container::swap;
+
+	//thread safe
 	bool enqueue(const T& item) {typename Lockable::lock_guard lock(*this); return enqueue_(item);}
 	bool enqueue(T& item) {typename Lockable::lock_guard lock(*this); return enqueue_(item);}
 	void move_items_in(boost::container::list<T>& can) {typename Lockable::lock_guard lock(*this); move_items_in_(can);}
 	bool try_dequeue(T& item) {typename Lockable::lock_guard lock(*this); return try_dequeue_(item);}
 
+	//not thread safe
 	bool enqueue_(const T& item) {this->emplace_back(item); return true;}
 	bool enqueue_(T& item) {this->emplace_back(); this->back().swap(item); return true;} //after this, item will becomes empty, please note.
 	void move_items_in_(boost::container::list<T>& can) {this->splice(this->end(), can);}
-	bool try_dequeue_(T& item) {if (this->empty()) return false; item.swap(this->front()); this->pop_front(); return true;}
+	bool try_dequeue_(T& item) {if (Container::empty()) return false; item.swap(this->front()); this->pop_front(); return true;}
+
+protected:
+	using Container::size;
+	using Container::empty;
 };
 
 template<typename T, typename Container>

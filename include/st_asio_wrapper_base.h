@@ -68,18 +68,18 @@ class st_atomic
 {
 public:
 	st_atomic() : data(0) {}
-	st_atomic(const T& _data) : data(_data) {}
+	st_atomic(T _data) : data(_data) {}
 
 	T operator++() {boost::unique_lock<boost::shared_mutex> lock(data_mutex); return ++data;}
 	//deliberately omitted operator++(int)
-	T operator+=(const T& value) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); return data += value;}
+	T operator+=(T value) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); return data += value;}
 	T operator--() {boost::unique_lock<boost::shared_mutex> lock(data_mutex); return --data;}
 	//deliberately omitted operator--(int)
-	T operator-=(const T& value) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); return data -= value;}
-	T operator=(const T& value) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); return data = value;}
-	T exchange(const T& value, boost::memory_order) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); T pre_data = data; data = value; return pre_data;}
-	T fetch_add(const T& value, boost::memory_order) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); T pre_data = data; data += value; return pre_data;}
-	void store(const T& value, boost::memory_order) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); data = value;}
+	T operator-=(T value) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); return data -= value;}
+	T operator=(T value) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); return data = value;}
+	T exchange(T value, boost::memory_order) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); T pre_data = data; data = value; return pre_data;}
+	T fetch_add(T value, boost::memory_order) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); T pre_data = data; data += value; return pre_data;}
+	void store(T value, boost::memory_order) {boost::unique_lock<boost::shared_mutex> lock(data_mutex); data = value;}
 
 	bool is_lock_free() const {return false;}
 	operator T() const {return data;}
@@ -512,7 +512,7 @@ template<typename _Predicate> void NAME(const _Predicate& __pred) const {for (au
 	boost::this_thread::sleep(boost::get_system_time() + boost::posix_time::milliseconds(50)); \
 }
 
-#define GET_PENDING_MSG_NUM(FUNNAME, CAN) size_t FUNNAME() const {return CAN.size();}
+#define GET_PENDING_MSG_NUM(FUNNAME, CAN) size_t FUNNAME() const {return CAN.size_approx();}
 #define POP_FIRST_PENDING_MSG(FUNNAME, CAN, MSGTYPE) void FUNNAME(MSGTYPE& msg) {msg.clear(); CAN.try_dequeue(msg);}
 #define POP_ALL_PENDING_MSG(FUNNAME, CAN, CANTYPE) void FUNNAME(CANTYPE& msg_queue) {msg_queue.clear(); CAN.swap(msg_queue);}
 

@@ -124,7 +124,7 @@ public:
 				if (!do_send_msg())
 				{
 					sending = false;
-					if (!send_msg_buffer.empty() && is_send_allowed())
+					if (is_send_allowed() && !send_msg_buffer.empty())
 						send_msg(); //just make sure no pending msgs
 				}
 			}
@@ -159,7 +159,7 @@ public:
 
 	//if you use can_overflow = true to invoke send_msg or send_native_msg, it will always succeed no matter the sending buffer is available or not,
 	//this can exhaust all virtual memory, please pay special attentions.
-	bool is_send_buffer_available() const {return send_msg_buffer.size() < ST_ASIO_MAX_MSG_NUM;}
+	bool is_send_buffer_available() const {return send_msg_buffer.size_approx() < ST_ASIO_MAX_MSG_NUM;}
 
 	//don't use the packer but insert into send buffer directly
 	bool direct_send_msg(const InMsgType& msg, bool can_overflow = false) {return direct_send_msg(InMsgType(msg), can_overflow);}
@@ -265,7 +265,7 @@ protected:
 			dispatch_msg();
 		}
 
-		if (temp_msg_buffer.empty() && recv_msg_buffer.size() < ST_ASIO_MAX_MSG_NUM)
+		if (temp_msg_buffer.empty() && recv_msg_buffer.size_approx() < ST_ASIO_MAX_MSG_NUM)
 			do_recv_msg(); //receive msg sequentially, which means second receiving only after first receiving success
 		else
 		{
@@ -288,7 +288,7 @@ protected:
 				if (!do_dispatch_msg())
 				{
 					dispatching = false;
-					if (!recv_msg_buffer.empty() && !paused_dispatching)
+					if (!paused_dispatching && !recv_msg_buffer.empty())
 						dispatch_msg(); //just make sure no pending msgs
 				}
 			}
@@ -306,17 +306,15 @@ protected:
 		{
 #ifndef ST_ASIO_DISCARD_MSG_WHEN_LINK_DOWN
 			if (!last_dispatch_msg.empty())
-			{
 				on_msg_handle(last_dispatch_msg, true);
-				last_dispatch_msg.clear();
-			}
-
-			out_msg msg;
+#endif
 			typename out_container_type::lock_guard lock(recv_msg_buffer);
-			while (recv_msg_buffer.try_dequeue_(msg))
-				on_msg_handle(msg, true);
+#ifndef ST_ASIO_DISCARD_MSG_WHEN_LINK_DOWN
+			while (recv_msg_buffer.try_dequeue_(last_dispatch_msg))
+				on_msg_handle(last_dispatch_msg, true);
 #endif
 			recv_msg_buffer.clear();
+			last_dispatch_msg.clear();
 		}
 		else if (!last_dispatch_msg.empty() || recv_msg_buffer.try_dequeue(last_dispatch_msg))
 		{
