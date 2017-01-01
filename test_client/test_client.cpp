@@ -479,6 +479,7 @@ int main(int argc, const char* argv[])
 			size_t msg_len = 1024; //must greater than or equal to sizeof(size_t)
 			auto msg_fill = '0';
 			char model = 0; //0 broadcast, 1 randomly pick one link per msg
+			auto repeat_times = 1;
 
 			boost::char_separator<char> sep(" \t");
 			boost::tokenizer<boost::char_separator<char>> parameters(str, sep);
@@ -497,6 +498,7 @@ int main(int argc, const char* argv[])
 #endif
 			if (iter != std::end(parameters)) msg_fill = *iter++->data();
 			if (iter != std::end(parameters)) model = *iter++->data() - '0';
+			if (iter != std::end(parameters)) repeat_times = std::max(atoi(iter++->data()), 1);
 
 			if (0 != model && 1 != model)
 			{
@@ -506,19 +508,22 @@ int main(int argc, const char* argv[])
 
 			printf("test parameters after adjustment: " ST_ASIO_SF " " ST_ASIO_SF " %c %d\n", msg_num, msg_len, msg_fill, model);
 			puts("performance test begin, this application will have no response during the test!");
-
-			client.clear_status();
+			for (int i = 0; i < repeat_times; ++i)
+			{
+				printf("thie is the %d / %d test.\n", i + 1, repeat_times);
+				client.clear_status();
 #ifdef ST_ASIO_WANT_MSG_SEND_NOTIFY
-			if (0 == model)
-				send_msg_one_by_one(client, msg_num, msg_len, msg_fill);
-			else
-				puts("if ST_ASIO_WANT_MSG_SEND_NOTIFY defined, only support model 0!");
+				if (0 == model)
+					send_msg_one_by_one(client, msg_num, msg_len, msg_fill);
+				else
+					puts("if ST_ASIO_WANT_MSG_SEND_NOTIFY defined, only support model 0!");
 #else
-			if (0 == model)
-				send_msg_concurrently(client, send_thread_num, msg_num, msg_len, msg_fill);
-			else
-				send_msg_randomly(client, msg_num, msg_len, msg_fill);
+				if (0 == model)
+					send_msg_concurrently(client, send_thread_num, msg_num, msg_len, msg_fill);
+				else
+					send_msg_randomly(client, msg_num, msg_len, msg_fill);
 #endif
+			}
 		}
 	}
 
