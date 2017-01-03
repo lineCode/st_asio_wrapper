@@ -40,8 +40,8 @@ using namespace st_asio_wrapper::ext;
 //   for sender, send msgs in on_msg_send() or use sending buffer limitation (like safe_send_msg(..., false)),
 //    but must not in service threads, please note.
 //
-//2. for sender, if responses are available (like pingpong test), send msgs in on_msg()/on_msg_handle().
-//    this will reduce IO throughput, because SOCKET's sliding window is not fully used, pleae note.
+//2. for sender, if responses are available (like pingpong test), send msgs in on_msg()/on_msg_handle(),
+//    but this will reduce IO throughput because SOCKET's sliding window is not fully used, pleae note.
 //
 //pingpong_server chose method #1
 //BTW, if pingpong_client chose method #2, then pingpong_server can work properly without any congestion control,
