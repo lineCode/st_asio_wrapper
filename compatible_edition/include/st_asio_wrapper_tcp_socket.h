@@ -132,7 +132,7 @@ protected:
 	}
 
 	//ascs::socket will guarantee not call this function in more than one thread concurrently.
-	//return false if send buffer is empty or sending not allowed or io_service stopped
+	//return false if send buffer is empty or sending not allowed
 	virtual bool do_send_msg()
 	{
 		if (is_send_allowed())

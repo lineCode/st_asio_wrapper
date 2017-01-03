@@ -89,8 +89,7 @@ public:
 	queue() {}
 	queue(size_t size) : super(size) {}
 
-	size_t size_approx() const {return Container::size();}
-	bool empty() {typename Lockable::lock_guard lock(*this); return Container::empty();} //thread safe
+	using Container::size;
 	using Container::clear;
 	using Container::swap;
 
@@ -104,11 +103,7 @@ public:
 	bool enqueue_(const T& item) {this->emplace_back(item); return true;}
 	bool enqueue_(T& item) {this->emplace_back(); this->back().swap(item); return true;} //after this, item will becomes empty, please note.
 	void move_items_in_(boost::container::list<T>& can) {this->splice(this->end(), can);}
-	bool try_dequeue_(T& item) {if (Container::empty()) return false; item.swap(this->front()); this->pop_front(); return true;}
-
-protected:
-	using Container::size;
-	using Container::empty;
+	bool try_dequeue_(T& item) {if (this->empty()) return false; item.swap(this->front()); this->pop_front(); return true;}
 };
 
 template<typename T, typename Container>
