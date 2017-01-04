@@ -179,17 +179,19 @@ protected:
 	//otherwise, you can call check_heartbeat with you own logic, but you still need to define a valid ST_ASIO_HEARTBEAT_MAX_ABSENCE macro, please note.
 	bool check_heartbeat(int interval)
 	{
-		ST_THIS clean_heartbeat();
-
 		assert(interval > 0);
+
 		auto now = time(nullptr);
-		if (now - std::max(this->last_send_time, this->last_recv_time) >= interval * ST_ASIO_HEARTBEAT_MAX_ABSENCE)
+		if (now - ST_THIS last_interact_time >= interval) //client send heartbeat on its own initiative
+			ST_THIS send_heartbeat('c');
+
+		if (ST_THIS clean_heartbeat() > 0)
+			ST_THIS last_interact_time = now;
+		else if (now - ST_THIS last_interact_time >= interval * ST_ASIO_HEARTBEAT_MAX_ABSENCE)
 		{
 			show_info("client link:", "broke unexpectedly.");
 			force_shutdown(ST_THIS is_shutting_down() ? reconnecting : prepare_reconnect(boost::system::error_code(boost::asio::error::network_down)) >= 0);
 		}
-		else if (now - this->last_send_time >= interval)
-			ST_THIS send_heartbeat('c');
 
 		return ST_THIS started(); //always keep this timer
 	}
@@ -224,7 +226,7 @@ private:
 			connected = reconnecting = true;
 			ST_THIS reset_state();
 			on_connect();
-			ST_THIS last_send_time = ST_THIS last_recv_time = time(nullptr);
+			ST_THIS last_interact_time = time(nullptr);
 			if (ST_ASIO_HEARTBEAT_INTERVAL > 0)
 				ST_THIS set_timer(TIMER_HEARTBEAT_CHECK, ST_ASIO_HEARTBEAT_INTERVAL * 1000, [this](st_timer::tid id)->bool {return ST_THIS check_heartbeat(ST_ASIO_HEARTBEAT_INTERVAL);});
 			ST_THIS send_msg(); //send buffer may have msgs, send them

@@ -86,7 +86,7 @@ protected:
 	{
 		if (!ST_THIS stopped())
 		{
-			ST_THIS last_send_time = ST_THIS last_recv_time = time(NULL);
+			ST_THIS last_interact_time = time(NULL);
 			if (ST_ASIO_HEARTBEAT_INTERVAL > 0)
 				ST_THIS set_timer(TIMER_HEARTBEAT_CHECK, ST_ASIO_HEARTBEAT_INTERVAL * 1000,
 					boost::lambda::if_then_else_return(boost::lambda::bind(&st_server_socket_base::check_heartbeat, this, ST_ASIO_HEARTBEAT_INTERVAL), true, false));
@@ -116,17 +116,21 @@ protected:
 	//otherwise, you can call check_heartbeat with you own logic, but you still need to define a valid ST_ASIO_HEARTBEAT_MAX_ABSENCE macro, please note.
 	bool check_heartbeat(int interval)
 	{
-		ST_THIS clean_heartbeat();
-
 		assert(interval > 0);
+
 		time_t now = time(NULL);
-		if (now - std::max(this->last_send_time, this->last_recv_time) >= interval * ST_ASIO_HEARTBEAT_MAX_ABSENCE)
+		if (ST_THIS clean_heartbeat() > 0)
+		{
+			if (now - ST_THIS last_interact_time >= interval) //server never send heartbeat on its own initiative
+				ST_THIS send_heartbeat('s');
+
+			ST_THIS last_interact_time = now;
+		}
+		else if (now - ST_THIS last_interact_time >= interval * ST_ASIO_HEARTBEAT_MAX_ABSENCE)
 		{
 			show_info("server link:", "broke unexpectedly.");
 			force_shutdown();
 		}
-		else if (now - this->last_send_time >= interval)
-			ST_THIS send_heartbeat('s');
 
 		return ST_THIS started(); //always keep this timer
 	}
