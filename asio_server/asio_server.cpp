@@ -63,8 +63,8 @@ auto global_packer(boost::make_shared<ST_ASIO_DEFAULT_PACKER>());
 //   for sender, send msgs in on_msg_send() or use sending buffer limitation (like safe_send_msg(..., false)),
 //    but must not in service threads, please note.
 //
-//2. for sender, if responses are available (like pingpong test), send msgs in on_msg()/on_msg_handle().
-//    this will reduce IO throughput, because SOCKET's sliding window is not fully used, pleae note.
+//2. for sender, if responses are available (like pingpong test), send msgs in on_msg()/on_msg_handle(),
+//    but this will reduce IO throughput because SOCKET's sliding window is not fully used, pleae note.
 //
 //asio_server chose method #1
 

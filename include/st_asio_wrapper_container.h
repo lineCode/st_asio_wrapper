@@ -72,8 +72,8 @@ private:
 
 //Container must at least has the following functions:
 // Container() and Container(size_t) constructor
-// size
-// empty
+// size (must be thread safe, but doesn't have to be coherent, std::list before gcc 5 doesn't meet this requirement, boost::container::list always does)
+// empty (must be thread safe, but doesn't have to be coherent)
 // clear
 // swap
 // emplace_back(const T& item)
