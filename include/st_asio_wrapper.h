@@ -131,7 +131,7 @@
  * Fix bug: Sometimes, st_connector_base cannot reconnect to the server after link broken.
  *
  * known issues:
- * 1. heartbeat mechanism may not be able to work properly bewteen different system (I just tried win-10 and Ubuntu-15.10).
+ * 1. heartbeat mechanism cannot work properly between windows (at least win-10) and Ubuntu (at least Ubuntu-16.04).
  *
  */
 
