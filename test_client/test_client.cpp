@@ -411,13 +411,9 @@ int main(int argc, const char* argv[])
 	auto thread_num = 1;
 	if (argc > 1)
 		thread_num = std::min(16, std::max(thread_num, atoi(argv[1])));
-#ifdef ST_ASIO_CLEAR_OBJECT_INTERVAL
-	if (1 == thread_num)
-		++thread_num;
 	//add one thread will seriously impact IO throughput when doing performance benchmark, this is because the business logic is very simple (send original messages back,
 	//or just add up total message size), under this scenario, just one service thread without receiving buffer will obtain the best IO throughput.
 	//the server has such behavior too.
-#endif
 
 	sp.start_service(thread_num);
 	while(sp.is_running())
@@ -509,7 +505,7 @@ int main(int argc, const char* argv[])
 			puts("performance test begin, this application will have no response during the test!");
 			for (int i = 0; i < repeat_times; ++i)
 			{
-				printf("thie is the %d / %d test.\n", i + 1, repeat_times);
+				printf("this is the %d / %d test.\n", i + 1, repeat_times);
 				client.clear_status();
 #ifdef ST_ASIO_WANT_MSG_SEND_NOTIFY
 				if (0 == model)
