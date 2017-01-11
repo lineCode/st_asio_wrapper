@@ -240,12 +240,12 @@ void send_msg_one_by_one(test_client& client, size_t msg_num, size_t msg_len, ch
 			printf("\r%u%%", percent);
 			fflush(stdout);
 		}
-	} while (100 != percent);
+	} while (percent < 100);
 	begin_time.stop();
 
 	auto used_time = (double) begin_time.elapsed().wall / 1000000000;
-	printf("\r100%%\ntime spent statistics: %f seconds.\n", used_time);
-	printf("speed: %.0f(*2)kB/s.\n", total_msg_bytes / used_time / 1024);
+	printf("\ntime spent statistics: %f seconds.\n", used_time);
+	printf("speed: %f(*2) MBps.\n", total_msg_bytes / used_time / 1024 / 1024);
 }
 
 void send_msg_randomly(test_client& client, size_t msg_num, size_t msg_len, char msg_fill)
@@ -275,15 +275,15 @@ void send_msg_randomly(test_client& client, size_t msg_num, size_t msg_len, char
 		}
 	}
 
-	while(client.get_recv_bytes() != total_msg_bytes)
+	while(client.get_recv_bytes() < total_msg_bytes)
 		boost::this_thread::sleep(boost::get_system_time() + boost::posix_time::milliseconds(50));
 
 	begin_time.stop();
 	delete[] buff;
 
 	auto used_time = (double) begin_time.elapsed().wall / 1000000000;
-	printf("\r100%%\ntime spent statistics: %f seconds.\n", used_time);
-	printf("speed: %.0f(*2)kB/s.\n", total_msg_bytes / used_time / 1024);
+	printf("\ntime spent statistics: %f seconds.\n", used_time);
+	printf("speed: %f(*2) MBps.\n", total_msg_bytes / used_time / 1024 / 1024);
 }
 
 //use up to a specific worker threads to send messages concurrently
@@ -347,13 +347,13 @@ void send_msg_concurrently(test_client& client, size_t send_thread_num, size_t m
 			printf("\r%u%%", percent);
 			fflush(stdout);
 		}
-	} while (100 != percent);
+	} while (percent < 100);
 	threads.join_all();
 	begin_time.stop();
 
 	auto used_time = (double) begin_time.elapsed().wall / 1000000000;
-	printf("\r100%%\ntime spent statistics: %f seconds.\n", used_time);
-	printf("speed: %.0f(*2)kB/s.\n", total_msg_bytes / used_time / 1024);
+	printf("\ntime spent statistics: %f seconds.\n", used_time);
+	printf("speed: %f(*2) MBps.\n", total_msg_bytes / used_time / 1024 / 1024);
 }
 
 int main(int argc, const char* argv[])
