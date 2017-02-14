@@ -244,6 +244,11 @@ public:
 	{
 		if (0 == step) //the head been received
 		{
+#if BOOST_ASIO_VERSION >= 101100 //1.11
+			assert(raw_buff.empty());
+			if (!allot_buffer()) //invalid msg, stop reading
+				return false;
+#endif
 			assert(!raw_buff.empty());
 			step = 1;
 		}
@@ -276,11 +281,10 @@ public:
 				return boost::asio::detail::default_max_transfer_size;
 
 			assert(ST_ASIO_HEAD_LEN == bytes_transferred);
-			auto cur_msg_len = ST_ASIO_HEAD_N2H(head) - ST_ASIO_HEAD_LEN;
-			if (cur_msg_len > ST_ASIO_MSG_BUFFER_SIZE - ST_ASIO_HEAD_LEN) //invalid msg, stop reading
+#if BOOST_ASIO_VERSION < 101100 //1.11
+			if (!allot_buffer()) //invalid msg, stop reading
 				step = -1;
-			else
-				raw_buff.attach(new char[cur_msg_len], cur_msg_len);
+#endif
 		}
 		else if (1 == step) //want the body
 		{
@@ -294,6 +298,17 @@ public:
 	}
 
 	virtual boost::asio::mutable_buffers_1 prepare_next_recv() {return raw_buff.empty() ? boost::asio::buffer((char*) &head, ST_ASIO_HEAD_LEN) : boost::asio::buffer(raw_buff.data(), raw_buff.size());}
+
+protected:
+	bool allot_buffer()
+	{
+		auto cur_msg_len = ST_ASIO_HEAD_N2H(head) - ST_ASIO_HEAD_LEN;
+		if (cur_msg_len > ST_ASIO_MSG_BUFFER_SIZE - ST_ASIO_HEAD_LEN) //invalid size
+			return false;
+
+		raw_buff.attach(new char[cur_msg_len], cur_msg_len);
+		return true;
+	}
 
 private:
 	ST_ASIO_HEAD_TYPE head;
