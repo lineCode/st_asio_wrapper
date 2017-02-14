@@ -208,6 +208,9 @@ public:
 	{
 		if (0 == step) //the head been received
 		{
+			if (raw_buff.empty() && !allot_buffer()) //invalid msg, stop reading
+				return false;
+
 			assert(!raw_buff.empty());
 			step = 1;
 		}
@@ -233,17 +236,12 @@ public:
 
 		if (0 == step) //want the head
 		{
-			assert(raw_buff.empty());
-
 			if (bytes_transferred < ST_ASIO_HEAD_LEN)
 				return boost::asio::detail::default_max_transfer_size;
 
-			assert(ST_ASIO_HEAD_LEN == bytes_transferred);
-			auto cur_msg_len = ST_ASIO_HEAD_N2H(head) - ST_ASIO_HEAD_LEN;
-			if (cur_msg_len > ST_ASIO_MSG_BUFFER_SIZE - ST_ASIO_HEAD_LEN) //invalid msg, stop reading
+			assert(raw_buff.empty() && ST_ASIO_HEAD_LEN == bytes_transferred);
+			if (!allot_buffer()) //invalid msg, stop reading
 				step = -1;
-			else
-				raw_buff.assign(cur_msg_len);
 		}
 		else if (1 == step) //want the body
 		{
@@ -263,6 +261,17 @@ public:
 #else
 	virtual buffer_type prepare_next_recv() {return raw_buff.empty() ? boost::asio::buffer((char*) &head, ST_ASIO_HEAD_LEN) : boost::asio::buffer(raw_buff.data(), raw_buff.size());}
 #endif
+
+protected:
+	bool allot_buffer()
+	{
+		auto cur_msg_len = ST_ASIO_HEAD_N2H(head) - ST_ASIO_HEAD_LEN;
+		if (cur_msg_len > ST_ASIO_MSG_BUFFER_SIZE - ST_ASIO_HEAD_LEN) //invalid size
+			return false;
+
+		raw_buff.assign(cur_msg_len);
+		return true;
+	}
 
 private:
 	ST_ASIO_HEAD_TYPE head;
