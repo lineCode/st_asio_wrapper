@@ -244,11 +244,9 @@ public:
 	{
 		if (0 == step) //the head been received
 		{
-#if BOOST_ASIO_VERSION >= 101100 //1.11
-			assert(raw_buff.empty());
-			if (!allot_buffer()) //invalid msg, stop reading
+			if (raw_buff.empty() && !allot_buffer()) //invalid msg, stop reading
 				return false;
-#endif
+
 			assert(!raw_buff.empty());
 			step = 1;
 		}
@@ -275,16 +273,12 @@ public:
 
 		if (0 == step) //want the head
 		{
-			assert(raw_buff.empty());
-
 			if (bytes_transferred < ST_ASIO_HEAD_LEN)
 				return boost::asio::detail::default_max_transfer_size;
 
-			assert(ST_ASIO_HEAD_LEN == bytes_transferred);
-#if BOOST_ASIO_VERSION < 101100 //1.11
+			assert(raw_buff.empty() && ST_ASIO_HEAD_LEN == bytes_transferred);
 			if (!allot_buffer()) //invalid msg, stop reading
 				step = -1;
-#endif
 		}
 		else if (1 == step) //want the body
 		{
