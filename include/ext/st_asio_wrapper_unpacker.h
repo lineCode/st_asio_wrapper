@@ -197,10 +197,13 @@ public:
 	{
 		if (0 == step) //the head been received
 		{
-			if (raw_buff.empty() && !allot_buffer()) //invalid msg, stop reading
+			assert(raw_buff.empty() && ASCS_HEAD_LEN == bytes_transferred);
+
+			auto cur_msg_len = ST_ASIO_HEAD_N2H(head) - ST_ASIO_HEAD_LEN;
+			if (cur_msg_len > ST_ASIO_MSG_BUFFER_SIZE - ST_ASIO_HEAD_LEN) //invalid size
 				return false;
 
-			assert(!raw_buff.empty());
+			raw_buff.assign(cur_msg_len); assert(!raw_buff.empty());
 			step = 1;
 		}
 		else if (1 == step) //the body been received
@@ -214,7 +217,7 @@ public:
 			step = 0;
 		}
 
-		return -1 != step;
+		return true;
 	}
 
 	//a return value of 0 indicates that the read operation is complete. a non-zero value indicates the maximum number
@@ -226,12 +229,8 @@ public:
 
 		if (0 == step) //want the head
 		{
-			if (bytes_transferred < ST_ASIO_HEAD_LEN)
-				return boost::asio::detail::default_max_transfer_size;
-
-			assert(raw_buff.empty() && ST_ASIO_HEAD_LEN == bytes_transferred);
-			if (!allot_buffer()) //invalid msg, stop reading
-				step = -1;
+			assert(raw_buff.empty());
+			return boost::asio::detail::default_max_transfer_size;
 		}
 		else if (1 == step) //want the body
 		{
@@ -245,17 +244,6 @@ public:
 	}
 
 	virtual boost::asio::mutable_buffers_1 prepare_next_recv() {return raw_buff.empty() ? boost::asio::buffer((char*) &head, ST_ASIO_HEAD_LEN) : boost::asio::buffer(raw_buff.data(), raw_buff.size());}
-
-protected:
-	bool allot_buffer()
-	{
-		auto cur_msg_len = ST_ASIO_HEAD_N2H(head) - ST_ASIO_HEAD_LEN;
-		if (cur_msg_len > ST_ASIO_MSG_BUFFER_SIZE - ST_ASIO_HEAD_LEN) //invalid size
-			return false;
-
-		raw_buff.assign(cur_msg_len);
-		return true;
-	}
 
 private:
 	ST_ASIO_HEAD_TYPE head;
